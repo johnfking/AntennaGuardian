@@ -33,6 +33,9 @@ software, and uses color only where it carries operational meaning:
 - **Red:** transmit is blocked or a fault requires attention.
 - **Amber:** connection or registration is in progress.
 
+Each state includes the radio nickname reported by SmartSDR API and the
+configured IP address or hostname, making the protected radio unambiguous.
+
 ## Policy control
 
 ![AntennaGuardian policy settings](docs/images/settings-policy.png)

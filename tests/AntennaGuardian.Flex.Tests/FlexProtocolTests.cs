@@ -6,6 +6,28 @@ namespace AntennaGuardian.Flex.Tests;
 public sealed class FlexProtocolTests
 {
     [Fact]
+    public void RadioStatusProducesRadioIdentity()
+    {
+        var protocol = new FlexProtocol();
+
+        var events = protocol.Feed(
+            "S0|radio slices=4 nickname=Shack-6600 callsign=W3JFK");
+
+        var identity = Assert.IsType<RadioIdentityUpdated>(Assert.Single(events));
+        Assert.Equal("Shack-6600", identity.Nickname);
+    }
+
+    [Fact]
+    public void RadioStatusWithoutNicknameProducesNoEvent()
+    {
+        var protocol = new FlexProtocol();
+
+        var events = protocol.Feed("S0|radio slices=4 panadapters=4");
+
+        Assert.Empty(events);
+    }
+
+    [Fact]
     public void TransmitStatusProducesAuthoritativeTxContext()
     {
         var protocol = new FlexProtocol();

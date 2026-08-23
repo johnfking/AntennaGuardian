@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -23,6 +24,10 @@ public partial class MainWindow : Window
     private GuardianSettings _settings;
     private GuardianRuntime? _runtime;
     private bool _exiting;
+    private string? _radioNickname;
+    private string? _radioDisplayHostOverride;
+    private string _stateLabel = "OFFLINE";
+    private System.Windows.Media.Brush _stateBrush = System.Windows.Media.Brushes.White;
 
     public MainWindow(GuardianSettings settings, SettingsStore settingsStore)
     {
@@ -30,6 +35,7 @@ public partial class MainWindow : Window
         _settingsStore = settingsStore;
         InitializeComponent();
         VersionText.Text = $"v{GetType().Assembly.GetName().Version?.ToString(3)}";
+        UpdateRadioIdentity(null);
         _applicationIcon = LoadApplicationIcon();
 
         _trayIcon = new Forms.NotifyIcon
@@ -85,6 +91,7 @@ public partial class MainWindow : Window
             _settings.InterlockAntennas);
         _runtime.StatusChanged += Runtime_StatusChanged;
         _runtime.Activity += Runtime_Activity;
+        _runtime.RadioIdentityChanged += Runtime_RadioIdentityChanged;
         _runtime.Start();
         RebuildTrayMenu();
         return Task.CompletedTask;
@@ -98,8 +105,10 @@ public partial class MainWindow : Window
         {
             runtime.StatusChanged -= Runtime_StatusChanged;
             runtime.Activity -= Runtime_Activity;
+            runtime.RadioIdentityChanged -= Runtime_RadioIdentityChanged;
             await runtime.DisposeAsync();
         }
+        UpdateRadioIdentity(null);
         SetOfflineVisual("Protection disabled");
         RebuildTrayMenu();
     }
@@ -121,6 +130,22 @@ public partial class MainWindow : Window
         });
     }
 
+    private void Runtime_RadioIdentityChanged(string nickname)
+    {
+        Dispatcher.Invoke(() => UpdateRadioIdentity(nickname));
+    }
+
+    private void UpdateRadioIdentity(string? nickname)
+    {
+        _radioNickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim();
+        RenderStateText();
+    }
+
+    internal static string FormatRadioIdentity(string? nickname, string host) =>
+        string.IsNullOrWhiteSpace(nickname)
+            ? host
+            : $"{nickname.Trim()} · {host}";
+
     private void ApplyStatus(GuardianStatus status)
     {
         var visual = OverlayStatusVisuals.For(status);
@@ -128,8 +153,9 @@ public partial class MainWindow : Window
         var color = MediaColor.FromRgb(visual.Red, visual.Green, visual.Blue);
         var brush = new SolidColorBrush(color);
         var haloBrush = new SolidColorBrush(MediaColor.FromArgb(54, color.R, color.G, color.B));
-        StateText.Text = label;
-        StateText.Foreground = brush;
+        _stateLabel = label;
+        _stateBrush = brush;
+        RenderStateText();
         StateRail.Background = brush;
         ShieldHalo.Fill = haloBrush;
         ShieldHalo.Stroke = brush;
@@ -162,8 +188,9 @@ public partial class MainWindow : Window
     private void SetOfflineVisual(string detail)
     {
         var neutral = new SolidColorBrush(MediaColor.FromRgb(111, 120, 128));
-        StateText.Text = "OFFLINE";
-        StateText.Foreground = new SolidColorBrush(MediaColor.FromRgb(214, 219, 224));
+        _stateLabel = "OFFLINE";
+        _stateBrush = new SolidColorBrush(MediaColor.FromRgb(214, 219, 224));
+        RenderStateText();
         DetailText.Text = detail;
         StateRail.Background = neutral;
         ShieldHalo.Fill = new SolidColorBrush(MediaColor.FromRgb(27, 32, 40));
@@ -171,6 +198,26 @@ public partial class MainWindow : Window
         ShieldIcon.Foreground = new SolidColorBrush(MediaColor.FromRgb(154, 163, 174));
         Frame.BorderBrush = new SolidColorBrush(MediaColor.FromRgb(52, 57, 68));
         _trayIcon.Text = "AntennaGuardian - Offline";
+    }
+
+    private void RenderStateText()
+    {
+        var identity = FormatRadioIdentity(
+            _radioNickname,
+            _radioDisplayHostOverride ?? _settings.RadioHost);
+        StateText.Inlines.Clear();
+        StateText.Inlines.Add(new Run(_stateLabel)
+        {
+            Foreground = _stateBrush,
+        });
+        StateText.Inlines.Add(new Run($"  {identity}")
+        {
+            BaselineAlignment = BaselineAlignment.Baseline,
+            FontSize = 9,
+            FontWeight = FontWeights.Normal,
+            Foreground = new SolidColorBrush(MediaColor.FromRgb(143, 152, 163)),
+        });
+        StateText.ToolTip = $"{_stateLabel} · {identity}";
     }
 
     private async void SettingsButton_Click(object sender, RoutedEventArgs e)
@@ -203,6 +250,7 @@ public partial class MainWindow : Window
             dialog.Result.RadioHost,
             StringComparison.OrdinalIgnoreCase);
         _settings = dialog.Result;
+        UpdateRadioIdentity(null);
         Topmost = _settings.AlwaysOnTop;
         Opacity = Math.Clamp(_settings.OverlayOpacity, 0.55, 1.0);
         await _settingsStore.SaveAsync(_settings);
@@ -225,6 +273,12 @@ public partial class MainWindow : Window
     }
 
     public Task OpenSettingsAsync() => ShowSettingsAsync();
+
+    internal void ShowPreviewRadioIdentity(string nickname, string host)
+    {
+        _radioDisplayHostOverride = host;
+        UpdateRadioIdentity(nickname);
+    }
 
     private void HideButton_Click(object sender, RoutedEventArgs e)
     {

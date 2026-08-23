@@ -35,6 +35,15 @@ public sealed class FlexProtocol
             };
         }
 
+        if (payload.StartsWith("radio ", StringComparison.Ordinal))
+        {
+            var radioFields = ParseFields(payload.AsSpan("radio ".Length));
+            return radioFields.TryGetValue("nickname", out var nickname)
+                && !string.IsNullOrWhiteSpace(nickname)
+                    ? [new RadioIdentityUpdated(nickname)]
+                    : [];
+        }
+
         if (!payload.StartsWith("transmit ", StringComparison.Ordinal))
         {
             return [];

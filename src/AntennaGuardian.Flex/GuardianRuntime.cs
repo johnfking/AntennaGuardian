@@ -22,6 +22,7 @@ public sealed class GuardianRuntime : IAsyncDisposable
 
     public event Action<GuardianStatus>? StatusChanged;
     public event Action<string>? Activity;
+    public event Action<string>? RadioIdentityChanged;
 
     public void Start()
     {
@@ -78,6 +79,12 @@ public sealed class GuardianRuntime : IAsyncDisposable
 
     private void OnRadioEvent(RadioEvent radioEvent)
     {
+        if (radioEvent is RadioIdentityUpdated identity)
+        {
+            RadioIdentityChanged?.Invoke(identity.Nickname);
+            return;
+        }
+
         _ = HandleEventAsync(radioEvent, _lifetime.Token);
     }
 

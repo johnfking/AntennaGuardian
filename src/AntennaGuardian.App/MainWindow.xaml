@@ -71,7 +71,8 @@
                            Text="OFFLINE"
                            FontSize="17"
                            FontWeight="SemiBold"
-                           Foreground="White" />
+                           Foreground="White"
+                           TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="DetailText"
                            Grid.Row="2"
                            Text="Protection disabled"

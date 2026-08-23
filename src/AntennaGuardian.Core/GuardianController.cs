@@ -14,6 +14,7 @@ public enum ProtectionState
 public abstract record RadioEvent;
 public sealed record RadioConnected : RadioEvent;
 public sealed record RadioDisconnected(string Reason) : RadioEvent;
+public sealed record RadioIdentityUpdated(string Nickname) : RadioEvent;
 public sealed record InterlockRegistered(string InterlockId) : RadioEvent;
 public sealed record TxContextChanged(TxContext Context) : RadioEvent;
 public sealed record PttRequested : RadioEvent;

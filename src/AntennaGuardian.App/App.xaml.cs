@@ -72,6 +72,10 @@ public partial class App : System.Windows.Application
         var window = new MainWindow(settings, store);
         MainWindow = window;
         window.Show();
+        if (preview)
+        {
+            window.ShowPreviewRadioIdentity("Shack FLEX-6600", "10.0.0.107");
+        }
         if (previewProtected || previewBlocked || previewTransmitting)
         {
             var context = new TxContext(

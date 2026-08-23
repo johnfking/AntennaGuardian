@@ -4,6 +4,18 @@ namespace AntennaGuardian.App.Tests;
 
 public sealed class OverlayStatusVisualTests
 {
+    [Theory]
+    [InlineData(null, "10.0.0.107", "10.0.0.107")]
+    [InlineData("Shack FLEX-6600", "10.0.0.107", "Shack FLEX-6600 · 10.0.0.107")]
+    [InlineData("  Shack  ", "flex.local", "Shack · flex.local")]
+    public void RadioIdentityIncludesNicknameWhenAvailable(
+        string? nickname,
+        string host,
+        string expected)
+    {
+        Assert.Equal(expected, MainWindow.FormatRadioIdentity(nickname, host));
+    }
+
     [Fact]
     public void ArmedWithoutTxContextDisplaysProtected()
     {
