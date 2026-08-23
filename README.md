@@ -1,78 +1,127 @@
 # AntennaGuardian
 
-AntennaGuardian is a Windows sidecar for Flex radios. It applies an explicit
-antenna-by-band allow matrix at the radio's Ethernet interlock, regardless of
-whether PTT originates in SmartSDR, SmartSDR CAT, WSJT-X, or another client.
+**A quiet, always-visible antenna safety interlock for Flex radios.**
 
-The UI is a compact, always-on-top WPF overlay with a tray icon and a separate
-settings window. Protection is disabled by default and the default matrix
-allows no combinations.
+[![Build and release](https://github.com/johnfking/AntennaGuardian/actions/workflows/build-release.yml/badge.svg)](https://github.com/johnfking/AntennaGuardian/actions/workflows/build-release.yml)
+
+AntennaGuardian is a compact Windows sidecar that enforces an explicit
+antenna-by-band allow matrix through the Flex Ethernet interlock. Because the
+decision is enforced at the radio, it applies whether PTT originates in
+SmartSDR, SmartSDR CAT, WSJT-X, or another client.
+
+<p align="center">
+  <img src="docs/images/overlay-protected.png" alt="AntennaGuardian protected overlay" width="606">
+</p>
+
+## At a glance
+
+| Offline | Protected |
+| --- | --- |
+| ![Offline overlay](docs/images/overlay-offline.png) | ![Protected overlay](docs/images/overlay-protected.png) |
+| **TX blocked** | **Transmitting** |
+| ![Blocked transmit overlay](docs/images/overlay-blocked.png) | ![Transmitting overlay](docs/images/overlay-transmitting.png) |
+
+The overlay stays out of the way, remains movable, can sit above other station
+software, and uses color only where it carries operational meaning:
+
+- **Gray:** protection is offline.
+- **Green:** the current antenna and band are allowed.
+- **Red:** transmit is blocked or a fault requires attention.
+- **Amber:** connection or registration is in progress.
+
+## Policy control
+
+![AntennaGuardian policy settings](docs/images/settings-policy.png)
+
+The policy window provides a dense two-column matrix for ANT1 and ANT2 across
+the Flex native amateur bands from 160m through 6m. There is no 2-meter policy
+because the target radio does not support 2 meters.
+
+Window size, overlay position, opacity, always-on-top mode, and click-through
+mode are remembered between sessions.
 
 ## Safety model
 
-- The policy is fail closed: unknown frequency, unknown antenna, out-of-band
-  frequency, and unconfigured combinations are denied.
+AntennaGuardian is deliberately fail closed:
+
+- Protection is disabled by default on a new installation.
+- The default matrix allows no antenna and band combinations.
+- Unknown frequency, unknown antenna, out-of-band frequency, and unconfigured
+  combinations are denied.
 - Connecting registers a dynamic `ANT` interlock and immediately asserts
   `not_ready`.
-- `ready` is emitted only after an allowed PTT request with a known interlock.
+- `ready` is sent only after an allowed PTT request with a known interlock.
 - Unkey, policy changes, and newly forbidden radio context reassert
   `not_ready`.
 - An out-of-policy `TRANSMITTING` report becomes a visible fault and reasserts
   `not_ready`.
-- Only the native HF and 6-meter bands are included. There is no 2-meter band.
+- Disconnect and cleanup are idempotent, so duplicate shutdown paths cannot
+  terminate the application.
 
-Software is an additional guard, not a replacement for the radio's hardware
-protection or correct station configuration.
+Software is an additional guard, not a substitute for the radio's hardware
+protection, a correct station configuration, or responsible RF operation.
 
-## Projects
+## Install
 
-- `AntennaGuardian.Core`: band catalog, policy engine, and deterministic state
-  machine.
-- `AntennaGuardian.Flex`: SmartSDR TCP protocol parser, radio adapter, and
-  reconnecting runtime.
-- `AntennaGuardian.App`: Windows WPF overlay, tray controls, settings, and
-  activity view.
-- `tests`: unit tests for safety policy, controller commands, and protocol
-  parsing.
+1. Open the [latest GitHub Release](https://github.com/johnfking/AntennaGuardian/releases/latest).
+2. Download `AntennaGuardian.exe`.
+3. Run the executable and open **Settings** from the overlay or tray icon.
+4. Enter the Flex radio address and configure the antenna/band matrix.
+5. Use **ENABLE PROTECTION** when the policy is ready.
 
-The original one-purpose Python bench tool remains in
-`antennaguardian_spike.py`; its verified result is recorded in
-`BENCH_RESULT.md`.
+The executable is self-contained for Windows x64; a separate .NET installation
+is not required. Releases are not currently code-signed, so Windows may display
+a SmartScreen warning.
 
-## Build and test offline
+## How it works
+
+The application is split into three focused modules:
+
+- `AntennaGuardian.Core` contains the band catalog, explicit allow policy, and
+  deterministic guardian state machine.
+- `AntennaGuardian.Flex` contains the SmartSDR TCP protocol parser, radio
+  adapter, interlock lifecycle, and reconnecting runtime.
+- `AntennaGuardian.App` contains the WPF overlay, tray controls, policy editor,
+  activity view, and persisted desktop settings.
+
+The controller is the only module that can emit `SetInterlockReady`. Protocol
+input is translated into domain events before it reaches that safety boundary.
+
+## Verified behavior
+
+The original bench spike demonstrated that software-originated PTT produced
+`PTT_REQUESTED`, the dynamic antenna interlock withheld ready, the radio
+reported that the interlock was preventing transmission, and no
+`TRANSMITTING` state followed. The interlock was then removed successfully.
+
+See [BENCH_RESULT.md](BENCH_RESULT.md) for the test configuration and evidence
+summary. The original one-purpose Python spike remains in
+[`antennaguardian_spike.py`](antennaguardian_spike.py).
+
+## Build locally
+
+Prerequisite: .NET 10 SDK on Windows.
 
 ```powershell
+git clone https://github.com/johnfking/AntennaGuardian.git
 cd AntennaGuardian
-dotnet build .\AntennaGuardian.sln
-dotnet test .\AntennaGuardian.sln --no-build
+dotnet restore .\AntennaGuardian.sln
+dotnet test .\AntennaGuardian.sln -c Release --no-restore
+dotnet publish .\src\AntennaGuardian.App\AntennaGuardian.App.csproj `
+  -c Release -r win-x64 --self-contained true `
+  -p:PublishSingleFile=true -o .\dist
 ```
 
-Open only the settings window for offline UI inspection:
+## Automated releases
+
+GitHub Actions builds and tests every push and pull request. Every `v*` tag
+publishes the self-contained Windows executable as both a workflow artifact and
+a GitHub Release asset.
 
 ```powershell
-dotnet run --project .\src\AntennaGuardian.App -- --settings
+git tag v0.1.1
+git push origin v0.1.1
 ```
-
-Do not enable **Radio interlock** until a controlled live-radio validation is
-authorized. Opening the normal app while protection remains disabled does not
-construct or start the radio runtime.
-
-## Releases
-
-Every push and pull request is built and tested by GitHub Actions. Version tags
-create a GitHub Release containing a self-contained Windows x64 executable:
-
-```powershell
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-## Live validation status
-
-The Python spike proved that withholding `ready` blocks software-originated
-PTT on the test Flex radio. The production C# adapter and allow path have not
-yet been exercised against the radio. That validation is intentionally held
-until the station operator authorizes it.
 
 ## Protocol references
 

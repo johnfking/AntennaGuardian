@@ -14,7 +14,15 @@ public partial class App : System.Windows.Application
         var previewProtected = e.Args.Contains(
             "--preview-protected",
             StringComparer.OrdinalIgnoreCase);
+        var previewBlocked = e.Args.Contains(
+            "--preview-blocked",
+            StringComparer.OrdinalIgnoreCase);
+        var previewTransmitting = e.Args.Contains(
+            "--preview-transmitting",
+            StringComparer.OrdinalIgnoreCase);
         var preview = previewProtected
+            || previewBlocked
+            || previewTransmitting
             || e.Args.Contains("--preview", StringComparer.OrdinalIgnoreCase);
         var store = preview
             ? new SettingsStore(Path.Combine(
@@ -53,18 +61,28 @@ public partial class App : System.Windows.Application
         var window = new MainWindow(settings, store);
         MainWindow = window;
         window.Show();
-        if (previewProtected)
+        if (previewProtected || previewBlocked || previewTransmitting)
         {
-            var context = new TxContext(14.074, "ANT1");
+            var context = new TxContext(
+                14.074,
+                previewBlocked ? "ANT2" : "ANT1");
             var decision = new PolicyEngine().Evaluate(
                 context,
                 AntennaPolicy.FromAllowed(("ANT1", "20m")));
             var status = new GuardianStatus(
-                ProtectionState.Armed,
+                previewBlocked
+                    ? ProtectionState.Blocking
+                    : previewTransmitting
+                        ? ProtectionState.Transmitting
+                        : ProtectionState.Armed,
                 context,
                 decision,
                 null,
-                "Interlock armed.");
+                previewBlocked
+                    ? "ANT2 is blocked on 20m."
+                    : previewTransmitting
+                        ? "Transmission allowed."
+                        : "Interlock armed.");
             _ = window.Dispatcher.BeginInvoke(
                 () => window.ShowPreviewStatus(status),
                 DispatcherPriority.ApplicationIdle);
