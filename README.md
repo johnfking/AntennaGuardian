@@ -7,7 +7,7 @@
 AntennaGuardian is a compact Windows sidecar that enforces an explicit
 antenna-by-band allow matrix through the Flex Ethernet interlock. Because the
 decision is enforced at the radio, it applies whether PTT originates in
-SmartSDR, SmartSDR CAT, WSJT-X, or another client.
+SmartSDR, SmartSDR CAT, or another client.
 
 <p align="center">
   <img src="docs/images/overlay-protected.png" alt="AntennaGuardian protected overlay" width="606">
@@ -34,8 +34,7 @@ software, and uses color only where it carries operational meaning:
 ![AntennaGuardian policy settings](docs/images/settings-policy.png)
 
 The policy window provides a dense two-column matrix for ANT1 and ANT2 across
-the Flex native amateur bands from 160m through 6m. There is no 2-meter policy
-because the target radio does not support 2 meters.
+the Flex native amateur bands from 160m through 6m.
 
 Window size, overlay position, opacity, always-on-top mode, and click-through
 mode are remembered between sessions.
