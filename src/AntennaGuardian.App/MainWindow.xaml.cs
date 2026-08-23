@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         _settings = settings;
         _settingsStore = settingsStore;
         InitializeComponent();
+        VersionText.Text = $"v{GetType().Assembly.GetName().Version?.ToString(3)}";
 
         _trayIcon = new Forms.NotifyIcon
         {

@@ -120,6 +120,39 @@ public sealed class GuardianControllerTests
     }
 
     [Fact]
+    public void UnavailableTxContextReturnsToArmedAndNotReady()
+    {
+        var controller = new GuardianController(
+            new PolicyEngine(),
+            AntennaPolicy.FromAllowed(("ANT1", "20m")),
+            ["ANT1", "ANT2"]);
+        controller.Handle(new InterlockRegistered("9"));
+        controller.Handle(new TxContextChanged(new TxContext(14.074, "ANT1")));
+
+        var result = controller.Handle(new TxContextChanged(new TxContext(null, null)));
+
+        Assert.Equal(ProtectionState.Armed, result.Status.State);
+        Assert.Equal(DecisionReason.UnknownFrequency, result.Status.Decision.Reason);
+        Assert.Contains(new SetInterlockNotReady("9"), result.Commands);
+    }
+
+    [Fact]
+    public void PttWithUnavailableTxContextRemainsBlocked()
+    {
+        var controller = new GuardianController(
+            new PolicyEngine(),
+            AntennaPolicy.FromAllowed(("ANT1", "20m")),
+            ["ANT1", "ANT2"]);
+        controller.Handle(new InterlockRegistered("9"));
+        controller.Handle(new TxContextChanged(new TxContext(null, null)));
+
+        var result = controller.Handle(new PttRequested());
+
+        Assert.Equal(ProtectionState.Blocking, result.Status.State);
+        Assert.DoesNotContain(result.Commands, command => command is SetInterlockReady);
+    }
+
+    [Fact]
     public void AllowedTransmissionIsReportedAsTransmitting()
     {
         var controller = new GuardianController(

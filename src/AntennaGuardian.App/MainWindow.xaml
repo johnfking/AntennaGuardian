@@ -55,10 +55,16 @@
                     <RowDefinition Height="27" />
                     <RowDefinition Height="18" />
                 </Grid.RowDefinitions>
-                <TextBlock Text="ANTENNA GUARDIAN"
-                           FontSize="10"
-                           FontWeight="Bold"
-                           Foreground="{StaticResource GoldBrush}" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="ANTENNA GUARDIAN"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource GoldBrush}" />
+                    <TextBlock x:Name="VersionText"
+                               Margin="6,0,0,0"
+                               FontSize="9"
+                               Foreground="#727B84" />
+                </StackPanel>
                 <TextBlock x:Name="StateText"
                            Grid.Row="1"
                            Text="OFFLINE"

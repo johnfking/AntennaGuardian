@@ -53,6 +53,13 @@ public sealed class FlexProtocol
 
         if (fields.TryGetValue("tx_antenna", out var antenna))
         {
+            if (string.Equals(antenna, "INVALID", StringComparison.OrdinalIgnoreCase))
+            {
+                _frequencyMhz = null;
+                _txAntenna = null;
+                return PublishContext(new TxContext(null, null));
+            }
+
             _txAntenna = antenna;
         }
 
@@ -61,7 +68,11 @@ public sealed class FlexProtocol
             return [];
         }
 
-        var context = new TxContext(_frequencyMhz, _txAntenna);
+        return PublishContext(new TxContext(_frequencyMhz, _txAntenna));
+    }
+
+    private IReadOnlyList<RadioEvent> PublishContext(TxContext context)
+    {
         if (context == _lastPublishedContext)
         {
             return [];

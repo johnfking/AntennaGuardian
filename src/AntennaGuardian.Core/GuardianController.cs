@@ -90,6 +90,15 @@ public sealed class GuardianController
             case TxContextChanged changed:
                 _context = changed.Context;
                 var contextDecision = _engine.Evaluate(_context, _policy);
+                var contextUnavailable = _context.FrequencyMhz is null
+                    || string.IsNullOrWhiteSpace(_context.TxAntenna);
+                if (_interlockId is not null && contextUnavailable)
+                {
+                    return SetStatus(
+                        ProtectionState.Armed,
+                        "Waiting for an active transmit context.",
+                        new SetInterlockNotReady(_interlockId));
+                }
                 if (_interlockId is not null && !contextDecision.IsAllowed)
                 {
                     return SetStatus(

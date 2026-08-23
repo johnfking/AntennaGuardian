@@ -18,6 +18,21 @@ public sealed class FlexProtocolTests
         Assert.Equal("ANT1", changed.Context.TxAntenna);
     }
 
+    [Fact]
+    public void InvalidTransmitAntennaClearsStaleTxContext()
+    {
+        var protocol = new FlexProtocol();
+        protocol.Feed(
+            "S791DFC6F|transmit freq=14.074000 rfpower=50 tx_antenna=ANT1");
+
+        var events = protocol.Feed(
+            "S791DFC6F|transmit freq=14.074000 rfpower=50 tx_antenna=INVALID");
+
+        var changed = Assert.IsType<TxContextChanged>(Assert.Single(events));
+        Assert.Null(changed.Context.FrequencyMhz);
+        Assert.Null(changed.Context.TxAntenna);
+    }
+
     [Theory]
     [InlineData("PTT_REQUESTED", typeof(PttRequested))]
     [InlineData("UNKEY_REQUESTED", typeof(UnkeyRequested))]
