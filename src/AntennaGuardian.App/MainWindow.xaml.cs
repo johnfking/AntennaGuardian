@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private const int WsExTransparent = 0x20;
     private readonly SettingsStore _settingsStore;
     private readonly ObservableCollection<string> _activity = [];
+    private readonly Drawing.Icon _applicationIcon;
     private readonly Forms.NotifyIcon _trayIcon;
     private GuardianSettings _settings;
     private GuardianRuntime? _runtime;
@@ -29,10 +30,11 @@ public partial class MainWindow : Window
         _settingsStore = settingsStore;
         InitializeComponent();
         VersionText.Text = $"v{GetType().Assembly.GetName().Version?.ToString(3)}";
+        _applicationIcon = LoadApplicationIcon();
 
         _trayIcon = new Forms.NotifyIcon
         {
-            Icon = Drawing.SystemIcons.Shield,
+            Icon = _applicationIcon,
             Text = "AntennaGuardian - Offline",
             Visible = true,
         };
@@ -329,6 +331,23 @@ public partial class MainWindow : Window
             return;
         }
         _trayIcon.Dispose();
+        _applicationIcon.Dispose();
+    }
+
+    private static Drawing.Icon LoadApplicationIcon()
+    {
+        var resource = System.Windows.Application.GetResourceStream(
+            new Uri("Assets/AntennaGuardian.ico", UriKind.Relative));
+        if (resource is null)
+        {
+            return (Drawing.Icon)Drawing.SystemIcons.Shield.Clone();
+        }
+
+        using (resource.Stream)
+        using (var icon = new Drawing.Icon(resource.Stream))
+        {
+            return (Drawing.Icon)icon.Clone();
+        }
     }
 
     private void ApplyClickThrough(bool enabled)

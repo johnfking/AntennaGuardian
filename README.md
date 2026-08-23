@@ -118,8 +118,8 @@ publishes the self-contained Windows executable as both a workflow artifact and
 a GitHub Release asset.
 
 ```powershell
-git tag v0.1.5
-git push origin v0.1.5
+git tag v0.1.6
+git push origin v0.1.6
 ```
 
 ## Protocol references
