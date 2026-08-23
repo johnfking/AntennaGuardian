@@ -5,10 +5,16 @@
     <ProjectReference Include="..\AntennaGuardian.Flex\AntennaGuardian.Flex.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>AntennaGuardian.App.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>AntennaGuardian</AssemblyName>
-    <Version>0.1.3</Version>
+    <Version>0.1.4</Version>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

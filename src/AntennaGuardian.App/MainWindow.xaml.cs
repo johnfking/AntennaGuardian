@@ -120,17 +120,9 @@ public partial class MainWindow : Window
 
     private void ApplyStatus(GuardianStatus status)
     {
-        var (label, color) = status.State switch
-        {
-            ProtectionState.Offline => ("OFFLINE", MediaColor.FromRgb(111, 120, 128)),
-            ProtectionState.Registering => ("CONNECTING", MediaColor.FromRgb(240, 180, 77)),
-            ProtectionState.Blocking => ("TX BLOCKED", MediaColor.FromRgb(239, 91, 98)),
-            ProtectionState.Allowing => ("TX ALLOWED", MediaColor.FromRgb(50, 196, 129)),
-            ProtectionState.Transmitting => ("TRANSMITTING", MediaColor.FromRgb(50, 196, 129)),
-            ProtectionState.Faulted => ("FAULT", MediaColor.FromRgb(239, 91, 98)),
-            _ when status.Decision.IsAllowed => ("PROTECTED", MediaColor.FromRgb(50, 196, 129)),
-            _ => ("PROTECTED / BLOCKED", MediaColor.FromRgb(239, 91, 98)),
-        };
+        var visual = OverlayStatusVisuals.For(status);
+        var label = visual.Label;
+        var color = MediaColor.FromRgb(visual.Red, visual.Green, visual.Blue);
         var brush = new SolidColorBrush(color);
         var haloBrush = new SolidColorBrush(MediaColor.FromArgb(54, color.R, color.G, color.B));
         StateText.Text = label;
