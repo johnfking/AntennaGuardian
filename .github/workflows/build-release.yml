@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -53,6 +54,50 @@ jobs:
           }
           Stop-Process -Id $process.Id
 
+      - name: Upload unsigned artifact for SignPath
+        if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ENABLED == 'true'
+        id: upload-unsigned-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: AntennaGuardian-unsigned-${{ github.run_id }}
+          path: .\dist\AntennaGuardian.exe
+          if-no-files-found: error
+
+      - name: Submit SignPath signing request
+        if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: .\signed
+
+      - name: Verify signed executable
+        if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $signed = @(Get-ChildItem .\signed -Recurse -Filter AntennaGuardian.exe)
+          if ($signed.Count -ne 1) {
+            throw "Expected one signed AntennaGuardian.exe, found $($signed.Count)."
+          }
+          Copy-Item $signed[0].FullName .\dist\AntennaGuardian.exe -Force
+          $signature = Get-AuthenticodeSignature .\dist\AntennaGuardian.exe
+          if ($signature.Status -ne 'Valid') {
+            throw "SignPath returned an invalid signature: $($signature.StatusMessage)"
+          }
+          Write-Host "Verified publisher: $($signature.SignerCertificate.Subject)"
+
+          $process = Start-Process .\dist\AntennaGuardian.exe -ArgumentList '--preview' -PassThru
+          Start-Sleep -Seconds 8
+          if ($process.HasExited) {
+            throw "Signed executable exited during preview startup with code $($process.ExitCode)."
+          }
+          Stop-Process -Id $process.Id
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -78,9 +123,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: >-
-          gh release create "${{ github.ref_name }}"
-          .\dist\AntennaGuardian.exe
-          --verify-tag
-          --generate-notes
-          --title "AntennaGuardian ${{ github.ref_name }}"
+        shell: pwsh
+        run: |
+          $signingNote = if ('${{ vars.SIGNPATH_ENABLED }}' -eq 'true') {
+            'Authenticode signed by SignPath Foundation under the published code signing policy.'
+          } else {
+            'This release is not code-signed and may trigger a Windows SmartScreen warning.'
+          }
+          gh release create "${{ github.ref_name }}" `
+            .\dist\AntennaGuardian.exe `
+            --verify-tag `
+            --generate-notes `
+            --notes "$signingNote`n`nCode signing policy: https://github.com/johnfking/AntennaGuardian/blob/main/CODE_SIGNING_POLICY.md" `
+            --title "AntennaGuardian ${{ github.ref_name }}"

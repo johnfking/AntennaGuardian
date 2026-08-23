@@ -1,6 +1,10 @@
-# AntennaGuardian
+<p align="center">
+  <img src="docs/images/antennaguardian-shield.png" alt="AntennaGuardian shield" width="154">
+</p>
 
-**A quiet, always-visible antenna safety interlock for Flex radios.**
+<h1 align="center">AntennaGuardian</h1>
+
+<p align="center"><strong>A quiet, always-visible antenna safety interlock for Flex radios.</strong></p>
 
 [![Build and release](https://github.com/johnfking/AntennaGuardian/actions/workflows/build-release.yml/badge.svg)](https://github.com/johnfking/AntennaGuardian/actions/workflows/build-release.yml)
 
@@ -70,7 +74,8 @@ protection, a correct station configuration, or responsible RF operation.
 
 The executable is self-contained for Windows x64; a separate .NET installation
 is not required. Releases are not currently code-signed, so Windows may display
-a SmartScreen warning.
+a SmartScreen warning. SignPath Foundation enrollment is in progress; release
+notes will identify signed builds once the integration is active.
 
 ## How it works
 
@@ -121,6 +126,37 @@ a GitHub Release asset.
 git tag v0.1.6
 git push origin v0.1.6
 ```
+
+## Code signing policy
+
+Free code signing provided by SignPath.io, certificate by SignPath Foundation.
+The project is preparing its verified GitHub build integration. Until that work
+is complete, GitHub releases remain unsigned and say so explicitly.
+
+See the complete [code signing policy](CODE_SIGNING_POLICY.md) and
+[privacy policy](PRIVACY.md). Security concerns can be reported privately under
+the [security policy](SECURITY.md).
+
+After SignPath approves the project, run the guided enrollment setup from Git
+Bash:
+
+```bash
+./scripts/setup-signpath.sh
+```
+
+## About the author
+
+AntennaGuardian is created and maintained by
+[John, W3JFK](https://github.com/johnfking), a former U.S. Air Force
+Communications Intelligence specialist and professional software developer for
+the past 25 years. John was first licensed in 1995 while stationed in Germany
+and operated as **DA4KI** and **DA2KI** for nearly a decade before returning to
+the United States.
+
+## License
+
+AntennaGuardian is open-source software available under the
+[MIT License](LICENSE).
 
 ## Protocol references
 
