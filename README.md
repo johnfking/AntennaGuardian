@@ -13,6 +13,9 @@ antenna-by-band allow matrix through the Flex Ethernet interlock. Because the
 decision is enforced at the radio, it applies whether PTT originates in
 SmartSDR, SmartSDR CAT, or another client.
 
+For a terminal-only Raspberry Pi or Linux deployment, see
+[AntennaGuardianPiLite](https://github.com/johnfking/AntennaGuardianPiLite).
+
 <p align="center">
   <img src="docs/images/overlay-protected.png" alt="AntennaGuardian protected overlay" width="606">
 </p>
