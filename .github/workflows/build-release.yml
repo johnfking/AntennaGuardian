@@ -41,6 +41,18 @@ jobs:
           -p:DebugSymbols=false
           -o .\dist
 
+      - name: Smoke-test standalone executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path .\smoke | Out-Null
+          Copy-Item .\dist\AntennaGuardian.exe .\smoke\AntennaGuardian.exe
+          $process = Start-Process .\smoke\AntennaGuardian.exe -ArgumentList '--preview' -PassThru
+          Start-Sleep -Seconds 8
+          if ($process.HasExited) {
+            throw "Standalone executable exited during preview startup with code $($process.ExitCode)."
+          }
+          Stop-Process -Id $process.Id
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
