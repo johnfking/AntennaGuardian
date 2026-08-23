@@ -141,7 +141,7 @@ public partial class MainWindow : Window
 
     internal void ShowPreviewStatus(GuardianStatus status) => ApplyStatus(status);
 
-    private static string FormatDetail(GuardianStatus status)
+    private string FormatDetail(GuardianStatus status)
     {
         var parts = new List<string>();
         if (status.Decision.Band != "Unknown")
@@ -150,7 +150,7 @@ public partial class MainWindow : Window
         }
         if (!string.IsNullOrWhiteSpace(status.Context.TxAntenna))
         {
-            parts.Add(status.Context.TxAntenna);
+            parts.Add(_settings.GetAntennaDisplayName(status.Context.TxAntenna));
         }
         if (status.Context.FrequencyMhz is not null)
         {

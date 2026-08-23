@@ -8,6 +8,7 @@ namespace AntennaGuardian.App;
 public sealed class BandRow
 {
     public required string Name { get; init; }
+    public required string Label { get; init; }
     public bool Ant1Allowed { get; set; }
     public bool Ant2Allowed { get; set; }
 }
@@ -25,12 +26,10 @@ public partial class SettingsWindow : Window
             new BandRow
             {
                 Name = band.Name,
+                Label = band.Name.TrimEnd('m'),
                 Ant1Allowed = IsAllowed("ANT1", band.Name),
                 Ant2Allowed = IsAllowed("ANT2", band.Name),
             }));
-        var splitAt = (Bands.Count + 1) / 2;
-        LeftBands = Bands.Take(splitAt).ToArray();
-        RightBands = Bands.Skip(splitAt).ToArray();
         Activity = activity;
         InitializeComponent();
         DataContext = this;
@@ -41,6 +40,8 @@ public partial class SettingsWindow : Window
         Height = Math.Clamp(settings.SettingsWindowHeight, MinHeight, maximumHeight);
 
         RadioHostTextBox.Text = settings.RadioHost;
+        Ant1NameTextBox.Text = settings.GetAntennaDisplayName("ANT1");
+        Ant2NameTextBox.Text = settings.GetAntennaDisplayName("ANT2");
         ProtectionCheckBox.IsChecked = settings.ProtectionEnabled;
         AlwaysOnTopCheckBox.IsChecked = settings.AlwaysOnTop;
         ClickThroughCheckBox.IsChecked = settings.ClickThrough;
@@ -48,8 +49,6 @@ public partial class SettingsWindow : Window
     }
 
     public ObservableCollection<BandRow> Bands { get; }
-    public IReadOnlyList<BandRow> LeftBands { get; }
-    public IReadOnlyList<BandRow> RightBands { get; }
     public ObservableCollection<string> Activity { get; }
     public GuardianSettings? Result { get; private set; }
     public double RememberedWidth => WindowState == WindowState.Normal
@@ -89,6 +88,11 @@ public partial class SettingsWindow : Window
             ["ANT1"] = Bands.Where(row => row.Ant1Allowed).Select(row => row.Name).ToList(),
             ["ANT2"] = Bands.Where(row => row.Ant2Allowed).Select(row => row.Name).ToList(),
         };
+        _settings.AntennaNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ANT1"] = NormalizeAntennaName(Ant1NameTextBox.Text, "ANT1"),
+            ["ANT2"] = NormalizeAntennaName(Ant2NameTextBox.Text, "ANT2"),
+        };
         Result = _settings;
         DialogResult = true;
     }
@@ -97,4 +101,7 @@ public partial class SettingsWindow : Window
     {
         DialogResult = false;
     }
+
+    private static string NormalizeAntennaName(string name, string fallback) =>
+        string.IsNullOrWhiteSpace(name) ? fallback : name.Trim();
 }

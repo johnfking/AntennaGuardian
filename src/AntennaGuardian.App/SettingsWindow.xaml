@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AntennaGuardian Settings"
         Width="760"
-        Height="720"
+        Height="640"
         MinWidth="660"
         MinHeight="600"
         WindowStartupLocation="CenterOwner"
@@ -11,30 +11,67 @@
         FontFamily="Segoe UI"
         ResizeMode="CanResizeWithGrip">
     <Window.Resources>
-        <DataTemplate x:Key="BandRowTemplate">
-            <Border BorderBrush="#2B3039" BorderThickness="0,1,0,0">
-                <Grid Height="32">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="52" />
-                        <ColumnDefinition Width="52" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding Name}"
-                               Margin="12,0"
-                               VerticalAlignment="Center"
-                               FontFamily="Cascadia Mono"
-                               FontSize="12"
-                               FontWeight="SemiBold" />
-                    <CheckBox Grid.Column="1"
-                              IsChecked="{Binding Ant1Allowed}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center" />
-                    <CheckBox Grid.Column="2"
-                              IsChecked="{Binding Ant2Allowed}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center" />
-                </Grid>
-            </Border>
+        <Style x:Key="BandToggle" TargetType="ToggleButton">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Foreground" Value="#AEB6C0" />
+            <Setter Property="Background" Value="#171B22" />
+            <Setter Property="BorderBrush" Value="#343A45" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Cascadia Mono" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="ToggleSurface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleSurface" Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="#07150D" />
+                                <Setter Property="Background" Value="{StaticResource GreenBrush}" />
+                                <Setter Property="BorderBrush" Value="#74DA93" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsChecked" Value="True" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="ToggleSurface" Property="Background" Value="#6FD590" />
+                            </MultiTrigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ToggleSurface" Property="BorderBrush" Value="#F0C45B" />
+                                <Setter TargetName="ToggleSurface" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <ItemsPanelTemplate x:Key="BandTogglePanel">
+            <UniformGrid Rows="1" />
+        </ItemsPanelTemplate>
+        <DataTemplate x:Key="Ant1BandToggleTemplate">
+            <ToggleButton Content="{Binding Label}"
+                          IsChecked="{Binding Ant1Allowed}"
+                          Style="{StaticResource BandToggle}"
+                          ToolTip="{Binding Name, StringFormat=Allow ANT1 on {0}}" />
+        </DataTemplate>
+        <DataTemplate x:Key="Ant2BandToggleTemplate">
+            <ToggleButton Content="{Binding Label}"
+                          IsChecked="{Binding Ant2Allowed}"
+                          Style="{StaticResource BandToggle}"
+                          ToolTip="{Binding Name, StringFormat=Allow ANT2 on {0}}" />
         </DataTemplate>
     </Window.Resources>
 
@@ -142,43 +179,70 @@
                                 BorderBrush="{StaticResource LineBrush}"
                                 BorderThickness="1"
                                 CornerRadius="4">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="1" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel>
-                                    <Grid Height="34" Background="#20252E">
+                            <StackPanel Margin="8">
+                                <Grid Height="40">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="142" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="52" />
-                                            <ColumnDefinition Width="52" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Band" Margin="12,0" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                        <TextBlock Grid.Column="1" Text="ANT1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="{StaticResource MutedBrush}" />
-                                        <TextBlock Grid.Column="2" Text="ANT2" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="{StaticResource MutedBrush}" />
+                                        <TextBlock Text="ANT1"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center"
+                                                   FontSize="9"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource MutedBrush}" />
+                                        <TextBox x:Name="Ant1NameTextBox"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Margin="2"
+                                                 Padding="8,3"
+                                                 MaxLength="24"
+                                                 VerticalContentAlignment="Center"
+                                                 FontSize="11"
+                                                 ToolTip="Display name for Flex antenna ANT1" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding LeftBands}" ItemTemplate="{StaticResource BandRowTemplate}" />
-                                </StackPanel>
-
-                                <Border Grid.Column="1" Background="{StaticResource LineBrush}" />
-
-                                <StackPanel Grid.Column="2">
-                                    <Grid Height="34" Background="#20252E">
+                                    <ItemsControl Grid.Column="1"
+                                                  ItemsSource="{Binding Bands}"
+                                                  ItemsPanel="{StaticResource BandTogglePanel}"
+                                                  ItemTemplate="{StaticResource Ant1BandToggleTemplate}" />
+                                </Grid>
+                                <Grid Height="40">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="142" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="52" />
-                                            <ColumnDefinition Width="52" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Band" Margin="12,0" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                        <TextBlock Grid.Column="1" Text="ANT1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="{StaticResource MutedBrush}" />
-                                        <TextBlock Grid.Column="2" Text="ANT2" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Foreground="{StaticResource MutedBrush}" />
+                                        <TextBlock Text="ANT2"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center"
+                                                   FontSize="9"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource MutedBrush}" />
+                                        <TextBox x:Name="Ant2NameTextBox"
+                                                 Grid.Column="1"
+                                                 Height="30"
+                                                 Margin="2"
+                                                 Padding="8,3"
+                                                 MaxLength="24"
+                                                 VerticalContentAlignment="Center"
+                                                 FontSize="11"
+                                                 ToolTip="Display name for Flex antenna ANT2" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding RightBands}" ItemTemplate="{StaticResource BandRowTemplate}" />
-                                </StackPanel>
-                            </Grid>
+                                    <ItemsControl Grid.Column="1"
+                                                  ItemsSource="{Binding Bands}"
+                                                  ItemsPanel="{StaticResource BandTogglePanel}"
+                                                  ItemTemplate="{StaticResource Ant2BandToggleTemplate}" />
+                                </Grid>
+                            </StackPanel>
                         </Border>
 
                         <TextBlock Text="OVERLAY"

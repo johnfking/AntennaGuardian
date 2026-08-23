@@ -37,8 +37,10 @@ software, and uses color only where it carries operational meaning:
 
 ![AntennaGuardian policy settings](docs/images/settings-policy.png)
 
-The policy window provides a dense two-column matrix for ANT1 and ANT2 across
-the Flex native amateur bands from 160m through 6m.
+The policy window provides a compact two-row matrix with modern band toggles
+for ANT1 and ANT2 across the Flex native amateur bands from 160m through 6m.
+Each antenna can also have a custom display name, shown in settings and live
+overlay status without changing the underlying Flex antenna identifier.
 
 Window size, overlay position, opacity, always-on-top mode, and click-through
 mode are remembered between sessions.

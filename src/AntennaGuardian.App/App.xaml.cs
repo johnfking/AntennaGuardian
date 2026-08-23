@@ -46,6 +46,17 @@ public partial class App : System.Windows.Application
             {
                 RadioHost = "127.0.0.1",
                 ProtectionEnabled = false,
+                AntennaNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["ANT1"] = "EFHW",
+                    ["ANT2"] = "Hexbeam",
+                },
+                AllowedBandsByAntenna = new Dictionary<string, List<string>>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["ANT1"] = ["160m", "80m", "60m", "40m", "30m", "20m", "17m"],
+                    ["ANT2"] = ["20m", "17m", "15m", "12m", "10m", "6m"],
+                },
             };
         }
 

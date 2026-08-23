@@ -14,7 +14,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>AntennaGuardian</AssemblyName>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
     <ApplicationIcon>Assets\AntennaGuardian.ico</ApplicationIcon>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>

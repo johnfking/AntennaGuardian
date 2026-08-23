@@ -15,12 +15,18 @@ public sealed class GuardianSettings
     public double? OverlayLeft { get; set; }
     public double? OverlayTop { get; set; }
     public double SettingsWindowWidth { get; set; } = 760;
-    public double SettingsWindowHeight { get; set; } = 720;
+    public double SettingsWindowHeight { get; set; } = 640;
     public Dictionary<string, List<string>> AllowedBandsByAntenna { get; set; } =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["ANT1"] = [],
             ["ANT2"] = [],
+        };
+    public Dictionary<string, string> AntennaNames { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ANT1"] = "ANT1",
+            ["ANT2"] = "ANT2",
         };
 
     [JsonIgnore]
@@ -31,6 +37,17 @@ public sealed class GuardianSettings
         var cells = AllowedBandsByAntenna.SelectMany(pair =>
             pair.Value.Select(band => (pair.Key, band)));
         return AntennaPolicy.FromAllowed(cells.ToArray());
+    }
+
+    public string GetAntennaDisplayName(string antenna)
+    {
+        if (AntennaNames.TryGetValue(antenna, out var name)
+            && !string.IsNullOrWhiteSpace(name))
+        {
+            return name.Trim();
+        }
+
+        return antenna;
     }
 
     public GuardianSettings Clone() => new()
@@ -47,6 +64,10 @@ public sealed class GuardianSettings
         AllowedBandsByAntenna = AllowedBandsByAntenna.ToDictionary(
             pair => pair.Key,
             pair => pair.Value.ToList(),
+            StringComparer.OrdinalIgnoreCase),
+        AntennaNames = AntennaNames.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
             StringComparer.OrdinalIgnoreCase),
     };
 }
