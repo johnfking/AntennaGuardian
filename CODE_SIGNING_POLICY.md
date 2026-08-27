@@ -23,13 +23,14 @@ Official signed releases must follow this process:
 1. Source and build instructions are committed to the public repository.
 2. A version tag triggers the GitHub-hosted Windows build workflow.
 3. The workflow restores dependencies, runs the complete automated test suite,
-   and publishes the self-contained Windows executable.
+   and publishes the self-contained Windows application.
 4. The unsigned workflow artifact is submitted to SignPath with GitHub origin
    verification.
 5. The signing approver manually reviews and approves the signing request.
-6. The workflow verifies the returned Authenticode signature before creating
-   the GitHub Release.
-7. The signed artifact is published without further modification.
+6. The workflow verifies the returned Authenticode signature before packaging
+   the installer and update release.
+7. Release notes identify the signing status of the published application,
+   installer, and portable artifacts.
 
 Only artifacts built from this repository by the configured GitHub Actions
 workflow are eligible for signing. Local builds and pull-request artifacts are

@@ -75,15 +75,36 @@ protection, a correct station configuration, or responsible RF operation.
 ## Install
 
 1. Open the [latest GitHub Release](https://github.com/johnfking/AntennaGuardian/releases/latest).
-2. Download `AntennaGuardian.exe`.
-3. Run the executable and open **Settings** from the overlay or tray icon.
+2. Download and run `AntennaGuardian-win-x64-Setup.exe`.
+3. Open **Settings** from the overlay or tray icon.
 4. Enter the Flex radio address and configure the antenna/band matrix.
 5. Use **ENABLE PROTECTION** when the policy is ready.
 
-The executable is self-contained for Windows x64; a separate .NET installation
-is not required. Releases are not currently code-signed, so Windows may display
-a SmartScreen warning. SignPath Foundation enrollment is in progress; release
-notes will identify signed builds once the integration is active.
+The per-user installer does not require administrator access and installs a
+Start menu shortcut. AntennaGuardian is self-contained for Windows x64; a
+separate .NET installation is not required.
+
+`AntennaGuardian-portable-win-x64.exe` remains available for users who prefer a
+single portable file, but portable copies cannot update themselves. Existing
+users need to run the installer once to move from the pre-0.2 portable release
+to the update-enabled edition. Station settings are retained because they are
+stored separately under the user's local application data folder.
+
+Releases are not currently code-signed, so Windows may display a SmartScreen
+warning. SignPath Foundation enrollment is in progress; release notes will
+identify signed builds once the integration is active.
+
+## Updates
+
+Installed editions check GitHub Releases shortly after startup when automatic
+checks are enabled. Update controls are available in **Settings > Updates** and
+in the tray menu. Downloads happen without changing radio protection.
+
+Installing an update always requires confirmation. AntennaGuardian refuses to
+begin installation while a transmit request is allowing, blocked, transmitting,
+or faulted. It saves settings, stops protection cleanly, removes its dynamic
+interlock when the connection is available, applies the downloaded package,
+and restarts. A failed check or download does not alter protection.
 
 ## How it works
 
@@ -112,7 +133,8 @@ summary. The original one-purpose Python spike remains in
 
 ## Build locally
 
-Prerequisite: .NET 10 SDK on Windows.
+Prerequisites are the .NET 10 SDK on Windows and the Velopack `vpk` tool when
+building an installer.
 
 ```powershell
 git clone https://github.com/johnfking/AntennaGuardian.git
@@ -122,17 +144,21 @@ dotnet test .\AntennaGuardian.sln -c Release --no-restore
 dotnet publish .\src\AntennaGuardian.App\AntennaGuardian.App.csproj `
   -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -o .\dist
+dotnet tool install --tool-path .\.tools vpk --version 1.2.0
+.\.tools\vpk pack --packId AntennaGuardian --packVersion 0.2.0 `
+  --packDir .\dist --mainExe AntennaGuardian.exe `
+  --channel win-x64 --runtime win-x64 --outputDir .\releases
 ```
 
 ## Automated releases
 
 GitHub Actions builds and tests every push and pull request. Every `v*` tag
-publishes the self-contained Windows executable as both a workflow artifact and
-a GitHub Release asset.
+publishes the installer, full and delta update packages, update-feed metadata,
+portable executable, and SHA-256 checksums.
 
 ```powershell
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## Code signing policy
@@ -164,7 +190,8 @@ the United States.
 ## License
 
 AntennaGuardian is open-source software available under the
-[MIT License](LICENSE).
+[MIT License](LICENSE). Third-party licensing is listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Protocol references
 

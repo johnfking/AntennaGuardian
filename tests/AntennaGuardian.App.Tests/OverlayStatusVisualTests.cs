@@ -51,4 +51,19 @@ public sealed class OverlayStatusVisualTests
 
         Assert.Equal("TX BLOCKED", visual.Label);
     }
+
+    [Theory]
+    [InlineData(ProtectionState.Offline, true)]
+    [InlineData(ProtectionState.Registering, true)]
+    [InlineData(ProtectionState.Armed, true)]
+    [InlineData(ProtectionState.Allowing, false)]
+    [InlineData(ProtectionState.Blocking, false)]
+    [InlineData(ProtectionState.Transmitting, false)]
+    [InlineData(ProtectionState.Faulted, false)]
+    public void UpdatesInstallOnlyWithoutAnActiveTransmitContext(
+        ProtectionState state,
+        bool expected)
+    {
+        Assert.Equal(expected, MainWindow.CanInstallUpdate(state));
+    }
 }

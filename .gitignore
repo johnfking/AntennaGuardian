@@ -6,5 +6,10 @@ obj/
 .vs/
 publish/
 artifacts/
+build/
+dist/
+releases/
+smoke/
+.tools/
 *.user
 .signpath.env

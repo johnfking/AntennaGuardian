@@ -42,6 +42,21 @@ jobs:
           -p:DebugSymbols=false
           -o .\dist
 
+      - name: Resolve package version
+        id: package-version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content .\src\AntennaGuardian.App\AntennaGuardian.App.csproj
+          $version = (Select-Xml -Xml $project -XPath '/Project/PropertyGroup/Version' |
+            Select-Object -First 1).Node.InnerText.Trim()
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $tagVersion = '${{ github.ref_name }}'.TrimStart('v')
+            if ($tagVersion -ne $version) {
+              throw "Tag version $tagVersion does not match project version $version."
+            }
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
       - name: Smoke-test standalone executable
         shell: pwsh
         run: |
@@ -98,11 +113,58 @@ jobs:
           }
           Stop-Process -Id $process.Id
 
+      - name: Install Velopack packager
+        run: dotnet tool install --tool-path .\.tools vpk --version 1.2.0
+
+      - name: Add distribution notices
+        run: Copy-Item .\LICENSE, .\THIRD_PARTY_NOTICES.md .\dist\
+
+      - name: Download previous update package
+        if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          .\.tools\vpk download github
+          --repoUrl https://github.com/johnfking/AntennaGuardian
+          --channel win-x64
+          --outputDir .\releases
+          --token $env:GH_TOKEN
+
+      - name: Build installer and update packages
+        run: >-
+          .\.tools\vpk pack
+          --packId AntennaGuardian
+          --packVersion ${{ steps.package-version.outputs.version }}
+          --packDir .\dist
+          --mainExe AntennaGuardian.exe
+          --packTitle AntennaGuardian
+          --packAuthors "John W3JFK"
+          --channel win-x64
+          --runtime win-x64
+          --icon .\src\AntennaGuardian.App\Assets\AntennaGuardian.ico
+          --shortcuts StartMenuRoot
+          --noPortable
+          --outputDir .\releases
+
+      - name: Prepare portable download
+        shell: pwsh
+        run: |
+          Copy-Item .\dist\AntennaGuardian.exe .\releases\AntennaGuardian-portable-win-x64.exe
+          Copy-Item .\THIRD_PARTY_NOTICES.md .\releases\THIRD_PARTY_NOTICES.md
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: AntennaGuardian-win-x64
-          path: .\dist\AntennaGuardian.exe
+          path: |
+            .\releases\AntennaGuardian-${{ steps.package-version.outputs.version }}-win-x64-*.nupkg
+            .\releases\AntennaGuardian-win-x64-Setup.exe
+            .\releases\AntennaGuardian-portable-win-x64.exe
+            .\releases\assets.win-x64.json
+            .\releases\releases.win-x64.json
+            .\releases\RELEASES-win-x64
+            .\releases\THIRD_PARTY_NOTICES.md
           if-no-files-found: error
 
   release:
@@ -117,7 +179,18 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: AntennaGuardian-win-x64
-          path: .\dist
+          path: .\release
+
+      - name: Create checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem .\release -File |
+            Where-Object Name -ne 'SHA256SUMS' |
+            Sort-Object Name |
+            ForEach-Object {
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $($_.Name)"
+            } | Set-Content .\release\SHA256SUMS
 
       - name: Create GitHub Release
         env:
@@ -126,12 +199,12 @@ jobs:
         shell: pwsh
         run: |
           $signingNote = if ('${{ vars.SIGNPATH_ENABLED }}' -eq 'true') {
-            'Authenticode signed by SignPath Foundation under the published code signing policy.'
+            'The AntennaGuardian application executable is Authenticode signed by SignPath Foundation. The Velopack installer and update bootstrap executables are not yet signed.'
           } else {
             'This release is not code-signed and may trigger a Windows SmartScreen warning.'
           }
           gh release create "${{ github.ref_name }}" `
-            .\dist\AntennaGuardian.exe `
+            .\release\* `
             --verify-tag `
             --generate-notes `
             --notes "$signingNote`n`nCode signing policy: https://github.com/johnfking/AntennaGuardian/blob/main/CODE_SIGNING_POLICY.md" `

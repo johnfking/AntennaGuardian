@@ -11,6 +11,7 @@ public sealed class GuardianSettings
     public bool ProtectionEnabled { get; set; }
     public bool AlwaysOnTop { get; set; } = true;
     public bool ClickThrough { get; set; }
+    public bool AutomaticallyCheckForUpdates { get; set; } = true;
     public double OverlayOpacity { get; set; } = 0.96;
     public double? OverlayLeft { get; set; }
     public double? OverlayTop { get; set; }
@@ -56,6 +57,7 @@ public sealed class GuardianSettings
         ProtectionEnabled = ProtectionEnabled,
         AlwaysOnTop = AlwaysOnTop,
         ClickThrough = ClickThrough,
+        AutomaticallyCheckForUpdates = AutomaticallyCheckForUpdates,
         OverlayOpacity = OverlayOpacity,
         OverlayLeft = OverlayLeft,
         OverlayTop = OverlayTop,

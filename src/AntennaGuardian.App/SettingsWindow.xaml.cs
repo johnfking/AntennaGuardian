@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net;
 using System.Windows;
 using AntennaGuardian.Core;
@@ -16,12 +17,18 @@ public sealed class BandRow
 public partial class SettingsWindow : Window
 {
     private readonly GuardianSettings _settings;
+    private readonly IAppUpdateService _updateService;
+    private readonly Func<Task> _installUpdate;
 
     public SettingsWindow(
         GuardianSettings settings,
-        ObservableCollection<string> activity)
+        ObservableCollection<string> activity,
+        IAppUpdateService updateService,
+        Func<Task> installUpdate)
     {
         _settings = settings;
+        _updateService = updateService;
+        _installUpdate = installUpdate;
         Bands = new ObservableCollection<BandRow>(BandCatalog.NativeBands.Select(band =>
             new BandRow
             {
@@ -45,7 +52,11 @@ public partial class SettingsWindow : Window
         ProtectionCheckBox.IsChecked = settings.ProtectionEnabled;
         AlwaysOnTopCheckBox.IsChecked = settings.AlwaysOnTop;
         ClickThroughCheckBox.IsChecked = settings.ClickThrough;
+        AutomaticUpdatesCheckBox.IsChecked = settings.AutomaticallyCheckForUpdates;
         OpacitySlider.Value = settings.OverlayOpacity;
+        ApplyUpdateState(_updateService.State);
+        _updateService.StateChanged += UpdateService_StateChanged;
+        Closed += (_, _) => _updateService.StateChanged -= UpdateService_StateChanged;
     }
 
     public ObservableCollection<BandRow> Bands { get; }
@@ -81,6 +92,7 @@ public partial class SettingsWindow : Window
         _settings.ProtectionEnabled = ProtectionCheckBox.IsChecked == true;
         _settings.AlwaysOnTop = AlwaysOnTopCheckBox.IsChecked == true;
         _settings.ClickThrough = ClickThroughCheckBox.IsChecked == true;
+        _settings.AutomaticallyCheckForUpdates = AutomaticUpdatesCheckBox.IsChecked == true;
         _settings.OverlayOpacity = OpacitySlider.Value;
         _settings.AllowedBandsByAntenna = new Dictionary<string, List<string>>(
             StringComparer.OrdinalIgnoreCase)
@@ -100,6 +112,57 @@ public partial class SettingsWindow : Window
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
+    }
+
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e) =>
+        await _updateService.CheckForUpdatesAsync();
+
+    private async void DownloadUpdateButton_Click(object sender, RoutedEventArgs e) =>
+        await _updateService.DownloadUpdateAsync();
+
+    private async void InstallUpdateButton_Click(object sender, RoutedEventArgs e) =>
+        await _installUpdate();
+
+    private void OpenReleasesButton_Click(object sender, RoutedEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "https://github.com/johnfking/AntennaGuardian/releases/latest",
+            UseShellExecute = true,
+        });
+    }
+
+    private void UpdateService_StateChanged(AppUpdateState state)
+    {
+        Dispatcher.BeginInvoke(() => ApplyUpdateState(state));
+    }
+
+    private void ApplyUpdateState(AppUpdateState state)
+    {
+        CurrentVersionText.Text = $"v{state.CurrentVersion}";
+        UpdateStatusText.Text = state.Message;
+        UpdateProgress.Value = state.ProgressPercent;
+        UpdateProgress.Visibility = state.Phase == AppUpdatePhase.Downloading
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        AutomaticUpdatesCheckBox.Visibility = state.Phase == AppUpdatePhase.Portable
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        CheckUpdateButton.IsEnabled = state.CanCheck;
+        CheckUpdateButton.Visibility = state.Phase == AppUpdatePhase.Portable
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        OpenReleasesButton.Visibility = state.Phase == AppUpdatePhase.Portable
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        DownloadUpdateButton.IsEnabled = state.CanDownload;
+        DownloadUpdateButton.Visibility = state.CanDownload
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        InstallUpdateButton.IsEnabled = state.CanInstall;
+        InstallUpdateButton.Visibility = state.CanInstall
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private static string NormalizeAntennaName(string name, string fallback) =>

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Documents;
@@ -18,6 +19,7 @@ public partial class MainWindow : Window
     private const int GwlExStyle = -20;
     private const int WsExTransparent = 0x20;
     private readonly SettingsStore _settingsStore;
+    private readonly IAppUpdateService _updateService;
     private readonly ObservableCollection<string> _activity = [];
     private readonly Drawing.Icon _applicationIcon;
     private readonly Forms.NotifyIcon _trayIcon;
@@ -28,11 +30,16 @@ public partial class MainWindow : Window
     private string? _radioDisplayHostOverride;
     private string _stateLabel = "OFFLINE";
     private System.Windows.Media.Brush _stateBrush = System.Windows.Media.Brushes.White;
+    private ProtectionState _protectionState = ProtectionState.Offline;
 
-    public MainWindow(GuardianSettings settings, SettingsStore settingsStore)
+    public MainWindow(
+        GuardianSettings settings,
+        SettingsStore settingsStore,
+        IAppUpdateService updateService)
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _updateService = updateService;
         InitializeComponent();
         VersionText.Text = $"v{GetType().Assembly.GetName().Version?.ToString(3)}";
         UpdateRadioIdentity(null);
@@ -45,6 +52,7 @@ public partial class MainWindow : Window
             Visible = true,
         };
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowOverlay);
+        _updateService.StateChanged += UpdateService_StateChanged;
         RebuildTrayMenu();
 
         Loaded += MainWindow_Loaded;
@@ -75,6 +83,11 @@ public partial class MainWindow : Window
         if (_settings.ProtectionEnabled)
         {
             await StartProtectionAsync();
+        }
+        if (_settings.AutomaticallyCheckForUpdates && _updateService.State.CanCheck)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await _updateService.CheckForUpdatesAsync();
         }
     }
 
@@ -109,6 +122,7 @@ public partial class MainWindow : Window
             await runtime.DisposeAsync();
         }
         UpdateRadioIdentity(null);
+        _protectionState = ProtectionState.Offline;
         SetOfflineVisual("Protection disabled");
         RebuildTrayMenu();
     }
@@ -148,6 +162,7 @@ public partial class MainWindow : Window
 
     private void ApplyStatus(GuardianStatus status)
     {
+        _protectionState = status.State;
         var visual = OverlayStatusVisuals.For(status);
         var label = visual.Label;
         var color = MediaColor.FromRgb(visual.Red, visual.Green, visual.Blue);
@@ -228,7 +243,11 @@ public partial class MainWindow : Window
     private async Task ShowSettingsAsync()
     {
         ApplyClickThrough(false);
-        var dialog = new SettingsWindow(_settings.Clone(), _activity)
+        var dialog = new SettingsWindow(
+            _settings.Clone(),
+            _activity,
+            _updateService,
+            InstallUpdateAsync)
         {
             Owner = this,
         };
@@ -270,6 +289,11 @@ public partial class MainWindow : Window
 
         ApplyClickThrough(_settings.ClickThrough);
         RebuildTrayMenu();
+    }
+
+    private void UpdateService_StateChanged(AppUpdateState state)
+    {
+        Dispatcher.BeginInvoke(() => RebuildTrayMenu());
     }
 
     public Task OpenSettingsAsync() => ShowSettingsAsync();
@@ -350,11 +374,124 @@ public partial class MainWindow : Window
         };
         menu.Items.Add(clickThrough);
         menu.Items.Add(new Forms.ToolStripSeparator());
+        AddUpdateTrayItem(menu);
         menu.Items.Add("Settings", null, (_, _) => Dispatcher.BeginInvoke(ShowSettingsAsync));
         menu.Items.Add("Exit", null, (_, _) => Dispatcher.BeginInvoke(ExitAsync));
         _trayIcon.ContextMenuStrip?.Dispose();
         _trayIcon.ContextMenuStrip = menu;
     }
+
+    private void AddUpdateTrayItem(Forms.ContextMenuStrip menu)
+    {
+        var state = _updateService.State;
+        if (state.Phase == AppUpdatePhase.Portable)
+        {
+            menu.Items.Add("Download latest release", null, (_, _) => OpenReleasesPage());
+            return;
+        }
+        if (state.CanInstall)
+        {
+            menu.Items.Add(
+                $"Install update v{state.AvailableVersion}",
+                null,
+                async (_, _) => await InstallUpdateAsync());
+            return;
+        }
+        if (state.CanDownload)
+        {
+            menu.Items.Add(
+                $"Download update v{state.AvailableVersion}",
+                null,
+                async (_, _) => await _updateService.DownloadUpdateAsync());
+            return;
+        }
+
+        var checkItem = new Forms.ToolStripMenuItem(
+            state.Phase == AppUpdatePhase.Checking
+                ? "Checking for updates..."
+                : state.Phase == AppUpdatePhase.Downloading
+                    ? $"Downloading update... {state.ProgressPercent}%"
+                    : "Check for updates")
+        {
+            Enabled = state.CanCheck,
+        };
+        checkItem.Click += async (_, _) => await _updateService.CheckForUpdatesAsync();
+        menu.Items.Add(checkItem);
+    }
+
+    private async Task InstallUpdateAsync()
+    {
+        var state = _updateService.State;
+        if (!state.CanInstall)
+        {
+            return;
+        }
+        if (!CanInstallUpdate(_protectionState))
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                "Wait until the radio has no active transmit request before installing the update.",
+                "AntennaGuardian Update",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var confirmation = System.Windows.MessageBox.Show(
+            this,
+            $"Install AntennaGuardian v{state.AvailableVersion} now?\n\n"
+            + "Protection will stop cleanly, the application will update, and AntennaGuardian will restart.",
+            "AntennaGuardian Update",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+        if (!CanInstallUpdate(_protectionState))
+        {
+            return;
+        }
+
+        _exiting = true;
+        CapturePosition();
+        await _settingsStore.SaveAsync(_settings);
+        await StopProtectionAsync();
+        _trayIcon.Visible = false;
+        try
+        {
+            _updateService.ApplyUpdateAndRestart();
+        }
+        catch (Exception error)
+        {
+            _exiting = false;
+            _trayIcon.Visible = true;
+            if (_settings.ProtectionEnabled)
+            {
+                await StartProtectionAsync();
+            }
+            System.Windows.MessageBox.Show(
+                this,
+                $"The update could not be started.\n\n{error.Message}",
+                "AntennaGuardian Update",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private static void OpenReleasesPage()
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "https://github.com/johnfking/AntennaGuardian/releases/latest",
+            UseShellExecute = true,
+        });
+    }
+
+    internal static bool CanInstallUpdate(ProtectionState state) =>
+        state is ProtectionState.Offline
+            or ProtectionState.Registering
+            or ProtectionState.Armed;
 
     private async Task ExitAsync()
     {
@@ -384,6 +521,7 @@ public partial class MainWindow : Window
             Hide();
             return;
         }
+        _updateService.StateChanged -= UpdateService_StateChanged;
         _trayIcon.Dispose();
         _applicationIcon.Dispose();
     }

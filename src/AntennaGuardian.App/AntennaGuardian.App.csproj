@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AntennaGuardian.Core\AntennaGuardian.Core.csproj" />
     <ProjectReference Include="..\AntennaGuardian.Flex\AntennaGuardian.Flex.csproj" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -14,7 +15,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>AntennaGuardian</AssemblyName>
-    <Version>0.1.8</Version>
+    <Version>0.2.0</Version>
     <ApplicationIcon>Assets\AntennaGuardian.ico</ApplicationIcon>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
@@ -27,5 +28,14 @@
   <ItemGroup>
     <Resource Include="Assets\AntennaGuardian.ico" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <StartupObject>AntennaGuardian.App.App</StartupObject>
+  </PropertyGroup>
 
 </Project>

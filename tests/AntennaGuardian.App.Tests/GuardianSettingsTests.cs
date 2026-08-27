@@ -33,4 +33,14 @@ public sealed class GuardianSettingsTests
         Assert.Equal("Hexbeam", settings.AntennaNames["ANT1"]);
         Assert.Equal("EFHW", clone.AntennaNames["ANT1"]);
     }
+
+    [Fact]
+    public void CloneKeepsAutomaticUpdatePreference()
+    {
+        var settings = new GuardianSettings { AutomaticallyCheckForUpdates = false };
+
+        var clone = settings.Clone();
+
+        Assert.False(clone.AutomaticallyCheckForUpdates);
+    }
 }

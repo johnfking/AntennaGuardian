@@ -3,11 +3,25 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Threading;
 using AntennaGuardian.Core;
+using Velopack;
 
 namespace AntennaGuardian.App;
 
 public partial class App : System.Windows.Application
 {
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        VelopackApp.Build()
+            .SetArgs(args)
+            .SetAutoApplyOnStartup(false)
+            .Run();
+
+        var application = new App();
+        application.InitializeComponent();
+        application.Run();
+    }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -60,16 +74,21 @@ public partial class App : System.Windows.Application
             };
         }
 
+        var updateService = new AppUpdateService(new VelopackUpdateBackend());
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
         {
-            var settingsWindow = new SettingsWindow(settings, new ObservableCollection<string>());
+            var settingsWindow = new SettingsWindow(
+                settings,
+                new ObservableCollection<string>(),
+                updateService,
+                () => Task.CompletedTask);
             MainWindow = settingsWindow;
             settingsWindow.ShowDialog();
             Shutdown();
             return;
         }
 
-        var window = new MainWindow(settings, store);
+        var window = new MainWindow(settings, store, updateService);
         MainWindow = window;
         window.Show();
         if (preview)

@@ -286,6 +286,93 @@
                              ScrollViewer.HorizontalScrollBarVisibility="Auto" />
                 </Border>
             </TabItem>
+
+            <TabItem Header="Updates">
+                <Grid Margin="4,16,4,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="APPLICATION"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource GoldBrush}" />
+
+                    <Grid Grid.Row="1" Margin="0,10,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Version"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource MutedBrush}" />
+                        <TextBlock x:Name="CurrentVersionText"
+                                   Grid.Column="1"
+                                   FontFamily="Cascadia Mono"
+                                   FontSize="13"
+                                   FontWeight="SemiBold" />
+                    </Grid>
+
+                    <Border Grid.Row="2"
+                            BorderBrush="{StaticResource LineBrush}"
+                            BorderThickness="0,1,0,0" />
+
+                    <Grid Grid.Row="3" Margin="0,16,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <CheckBox x:Name="AutomaticUpdatesCheckBox"
+                                  Content="Check automatically at startup" />
+                        <TextBlock x:Name="UpdateStatusText"
+                                   Grid.Row="1"
+                                   Margin="0,14,0,0"
+                                   FontSize="12"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap" />
+                        <ProgressBar x:Name="UpdateProgress"
+                                     Grid.Row="2"
+                                     Height="5"
+                                     Margin="0,12,0,0"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Foreground="{StaticResource GoldBrush}"
+                                     Visibility="Collapsed" />
+                        <StackPanel Grid.Row="3"
+                                    Margin="0,16,0,0"
+                                    Orientation="Horizontal">
+                            <Button x:Name="CheckUpdateButton"
+                                    Content="Check for updates"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Click="CheckUpdateButton_Click" />
+                            <Button x:Name="OpenReleasesButton"
+                                    Margin="8,0,0,0"
+                                    Content="Open releases"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Visibility="Collapsed"
+                                    Click="OpenReleasesButton_Click" />
+                            <Button x:Name="DownloadUpdateButton"
+                                    Margin="8,0,0,0"
+                                    Content="Download update"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Visibility="Collapsed"
+                                    Click="DownloadUpdateButton_Click" />
+                            <Button x:Name="InstallUpdateButton"
+                                    Margin="8,0,0,0"
+                                    Content="Install and restart"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Visibility="Collapsed"
+                                    Click="InstallUpdateButton_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <Border Grid.Row="2"
