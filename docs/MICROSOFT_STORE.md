@@ -65,8 +65,8 @@ publish output. Its manifest must declare:
 - `privateNetworkClientServer` for Flex UDP discovery and TCP control on the
   local network.
 - A package version whose fourth component is `0`. Because Store versions
-  cannot start with zero, the build maps application `0.3.0` to package
-  `1.3.0.0`; this offset remains monotonic when the application reaches 1.x.
+  cannot start with zero, the build maps application `0.3.1` to package
+  `1.3.1.0`; this offset remains monotonic when the application reaches 1.x.
 
 The Store build detects its package identity at runtime. It disables the
 GitHub updater and displays **Updates are managed by Microsoft Store**.

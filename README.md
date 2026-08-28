@@ -164,7 +164,7 @@ dotnet publish .\src\AntennaGuardian.App\AntennaGuardian.App.csproj `
   -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -o .\dist
 dotnet tool install --tool-path .\.tools vpk --version 1.2.0
-.\.tools\vpk pack --packId AntennaGuardian --packVersion 0.3.0 `
+.\.tools\vpk pack --packId AntennaGuardian --packVersion 0.3.1 `
   --packDir .\dist --mainExe AntennaGuardian.exe `
   --channel win-x64 --runtime win-x64 --outputDir .\releases
 ```
@@ -176,8 +176,8 @@ publishes the installer, full and delta update packages, update-feed metadata,
 portable executable, and SHA-256 checksums.
 
 ```powershell
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
 
 ## Microsoft Store
