@@ -58,6 +58,12 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="ModeToggle" TargetType="ToggleButton" BasedOn="{StaticResource BandToggle}">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
         <ItemsPanelTemplate x:Key="BandTogglePanel">
             <UniformGrid Rows="1" />
         </ItemsPanelTemplate>
@@ -127,7 +133,55 @@
                                    FontSize="10"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource GoldBrush}" />
-                        <Grid Margin="0,7,0,12">
+                        <Grid Margin="0,7,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ToggleButton x:Name="DiscoveryModeButton"
+                                          Content="UDP DISCOVERY"
+                                          Style="{StaticResource ModeToggle}"
+                                          Checked="DiscoveryModeButton_Checked" />
+                            <ToggleButton x:Name="DirectModeButton"
+                                          Grid.Column="1"
+                                          Content="DIRECT ADDRESS"
+                                          Style="{StaticResource ModeToggle}"
+                                          Checked="DirectModeButton_Checked" />
+                        </Grid>
+
+                        <Grid x:Name="DiscoveryFields" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Serial"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource MutedBrush}" />
+                            <TextBox x:Name="RadioSerialTextBox"
+                                     Grid.Column="1"
+                                     Height="34"
+                                     Padding="9,5"
+                                     MaxLength="64"
+                                     VerticalContentAlignment="Center"
+                                     FontFamily="Cascadia Mono"
+                                     FontSize="12" />
+                            <TextBlock Grid.Column="2"
+                                       Text="IP pin"
+                                       Margin="14,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource MutedBrush}" />
+                            <TextBox x:Name="RadioDiscoveryIpTextBox"
+                                     Grid.Column="3"
+                                     Height="34"
+                                     Padding="9,5"
+                                     VerticalContentAlignment="Center"
+                                     FontFamily="Cascadia Mono"
+                                     FontSize="12" />
+                        </Grid>
+
+                        <Grid x:Name="DirectFields" Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="110" />
                                 <ColumnDefinition Width="*" />

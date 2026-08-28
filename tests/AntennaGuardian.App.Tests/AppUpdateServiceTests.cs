@@ -15,6 +15,19 @@ public sealed class AppUpdateServiceTests
     }
 
     [Fact]
+    public async Task StoreEditionDoesNotContactUpdateBackend()
+    {
+        var backend = new FakeUpdateBackend { IsInstalled = false };
+        var service = new AppUpdateService(backend, isStorePackage: true);
+
+        await service.CheckForUpdatesAsync();
+
+        Assert.Equal(AppUpdatePhase.Store, service.State.Phase);
+        Assert.Equal("Updates are managed by Microsoft Store.", service.State.Message);
+        Assert.Equal(0, backend.CheckCount);
+    }
+
+    [Fact]
     public async Task CheckReportsCurrentVersionWhenNoUpdateExists()
     {
         var backend = new FakeUpdateBackend();

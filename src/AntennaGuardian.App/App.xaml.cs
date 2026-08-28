@@ -12,10 +12,13 @@ public partial class App : System.Windows.Application
     [STAThread]
     public static void Main(string[] args)
     {
-        VelopackApp.Build()
-            .SetArgs(args)
-            .SetAutoApplyOnStartup(false)
-            .Run();
+        if (!WindowsPackageIdentity.IsPackaged)
+        {
+            VelopackApp.Build()
+                .SetArgs(args)
+                .SetAutoApplyOnStartup(false)
+                .Run();
+        }
 
         var application = new App();
         application.InitializeComponent();
@@ -74,7 +77,11 @@ public partial class App : System.Windows.Application
             };
         }
 
-        var updateService = new AppUpdateService(new VelopackUpdateBackend());
+        var isStorePackage = WindowsPackageIdentity.IsPackaged;
+        IUpdateBackend updateBackend = isStorePackage
+            ? new StoreUpdateBackend()
+            : new VelopackUpdateBackend();
+        var updateService = new AppUpdateService(updateBackend, isStorePackage);
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
         {
             var settingsWindow = new SettingsWindow(

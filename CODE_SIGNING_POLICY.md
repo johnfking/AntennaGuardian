@@ -47,3 +47,13 @@ Report suspected problems through
 [private vulnerability reporting](https://github.com/johnfking/AntennaGuardian/security/advisories/new).
 Do not include credentials, private radio addresses, or other unnecessary
 sensitive data.
+
+## Microsoft Store packages
+
+The planned Microsoft Store edition uses an MSIX package. Microsoft re-signs
+approved MSIX submissions, so the Store package does not depend on SignPath or
+a purchased Authenticode certificate. Store-managed packages also use Store
+updates rather than AntennaGuardian's GitHub/Velopack update channel.
+
+The standalone GitHub installer remains a separate distribution channel and
+continues to require its own trusted signature for a warning-free first run.

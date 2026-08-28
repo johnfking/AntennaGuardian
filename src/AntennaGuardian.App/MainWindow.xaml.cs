@@ -99,12 +99,13 @@ public partial class MainWindow : Window
         }
 
         _runtime = new GuardianRuntime(
-            _settings.RadioHost,
+            _settings.BuildRadioConnectionOptions(),
             _settings.BuildPolicy(),
             _settings.InterlockAntennas);
         _runtime.StatusChanged += Runtime_StatusChanged;
         _runtime.Activity += Runtime_Activity;
         _runtime.RadioIdentityChanged += Runtime_RadioIdentityChanged;
+        _runtime.RadioEndpointChanged += Runtime_RadioEndpointChanged;
         _runtime.Start();
         RebuildTrayMenu();
         return Task.CompletedTask;
@@ -119,6 +120,7 @@ public partial class MainWindow : Window
             runtime.StatusChanged -= Runtime_StatusChanged;
             runtime.Activity -= Runtime_Activity;
             runtime.RadioIdentityChanged -= Runtime_RadioIdentityChanged;
+            runtime.RadioEndpointChanged -= Runtime_RadioEndpointChanged;
             await runtime.DisposeAsync();
         }
         UpdateRadioIdentity(null);
@@ -147,6 +149,19 @@ public partial class MainWindow : Window
     private void Runtime_RadioIdentityChanged(string nickname)
     {
         Dispatcher.Invoke(() => UpdateRadioIdentity(nickname));
+    }
+
+    private void Runtime_RadioEndpointChanged(DiscoveredRadio radio)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _radioDisplayHostOverride = radio.Host;
+            if (!string.IsNullOrWhiteSpace(radio.Nickname))
+            {
+                _radioNickname = radio.Nickname.Trim();
+            }
+            RenderStateText();
+        });
     }
 
     private void UpdateRadioIdentity(string? nickname)
@@ -219,7 +234,7 @@ public partial class MainWindow : Window
     {
         var identity = FormatRadioIdentity(
             _radioNickname,
-            _radioDisplayHostOverride ?? _settings.RadioHost);
+            _radioDisplayHostOverride ?? ConfiguredRadioIdentity(_settings));
         StateText.Inlines.Clear();
         StateText.Inlines.Add(new Run(_stateLabel)
         {
@@ -264,11 +279,10 @@ public partial class MainWindow : Window
         dialog.Result!.SettingsWindowWidth = dialog.RememberedWidth;
         dialog.Result.SettingsWindowHeight = dialog.RememberedHeight;
         var previousEnabled = _settings.ProtectionEnabled;
-        var connectionChanged = !string.Equals(
-            _settings.RadioHost,
-            dialog.Result.RadioHost,
-            StringComparison.OrdinalIgnoreCase);
+        var connectionChanged = _settings.BuildRadioConnectionOptions()
+            != dialog.Result.BuildRadioConnectionOptions();
         _settings = dialog.Result;
+        _radioDisplayHostOverride = null;
         UpdateRadioIdentity(null);
         Topmost = _settings.AlwaysOnTop;
         Opacity = Math.Clamp(_settings.OverlayOpacity, 0.55, 1.0);
@@ -302,6 +316,19 @@ public partial class MainWindow : Window
     {
         _radioDisplayHostOverride = host;
         UpdateRadioIdentity(nickname);
+    }
+
+    internal static string ConfiguredRadioIdentity(GuardianSettings settings)
+    {
+        if (settings.RadioConnectionMode == RadioConnectionMode.Direct)
+        {
+            return settings.RadioHost;
+        }
+        if (!string.IsNullOrWhiteSpace(settings.RadioSerial))
+        {
+            return $"Serial {settings.RadioSerial.Trim()}";
+        }
+        return settings.RadioDiscoveryIp;
     }
 
     private void HideButton_Click(object sender, RoutedEventArgs e)
@@ -387,6 +414,14 @@ public partial class MainWindow : Window
         if (state.Phase == AppUpdatePhase.Portable)
         {
             menu.Items.Add("Download latest release", null, (_, _) => OpenReleasesPage());
+            return;
+        }
+        if (state.Phase == AppUpdatePhase.Store)
+        {
+            menu.Items.Add(new Forms.ToolStripMenuItem("Updates managed by Microsoft Store")
+            {
+                Enabled = false,
+            });
             return;
         }
         if (state.CanInstall)

@@ -9,6 +9,7 @@ artifacts/
 build/
 dist/
 releases/
+store-packages/
 smoke/
 .tools/
 *.user

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Windows;
 using AntennaGuardian.Core;
+using AntennaGuardian.Flex;
 
 namespace AntennaGuardian.App;
 
@@ -47,6 +48,9 @@ public partial class SettingsWindow : Window
         Height = Math.Clamp(settings.SettingsWindowHeight, MinHeight, maximumHeight);
 
         RadioHostTextBox.Text = settings.RadioHost;
+        RadioSerialTextBox.Text = settings.RadioSerial;
+        RadioDiscoveryIpTextBox.Text = settings.RadioDiscoveryIp;
+        ApplyRadioMode(settings.RadioConnectionMode);
         Ant1NameTextBox.Text = settings.GetAntennaDisplayName("ANT1");
         Ant2NameTextBox.Text = settings.GetAntennaDisplayName("ANT2");
         ProtectionCheckBox.IsChecked = settings.ProtectionEnabled;
@@ -76,19 +80,45 @@ public partial class SettingsWindow : Window
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         var host = RadioHostTextBox.Text.Trim();
-        if (host.Length == 0 || (!IPAddress.TryParse(host, out _) && !Uri.CheckHostName(host).Equals(UriHostNameType.Dns)))
+        var serial = RadioSerialTextBox.Text.Trim();
+        var discoveryIp = RadioDiscoveryIpTextBox.Text.Trim();
+        if (DiscoveryModeButton.IsChecked == true)
         {
-            System.Windows.MessageBox.Show(
-                this,
-                "Enter a valid radio IP address or hostname.",
-                "AntennaGuardian",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            RadioHostTextBox.Focus();
+            if (serial.Length == 0 && discoveryIp.Length == 0)
+            {
+                ShowRadioValidation("Enter a radio serial number, an IP pin, or both.", RadioSerialTextBox);
+                return;
+            }
+            if (serial.Length > 64 || serial.Any(character =>
+                    !char.IsAsciiLetterOrDigit(character) && character is not '-' and not '_' and not '.'))
+            {
+                ShowRadioValidation(
+                    "The serial number may contain letters, digits, hyphens, underscores, and periods.",
+                    RadioSerialTextBox);
+                return;
+            }
+            if (discoveryIp.Length > 0
+                && (!IPAddress.TryParse(discoveryIp, out var address)
+                    || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork))
+            {
+                ShowRadioValidation("Enter a valid IPv4 address for the optional IP pin.", RadioDiscoveryIpTextBox);
+                return;
+            }
+        }
+        else if (host.Length == 0
+            || (!IPAddress.TryParse(host, out _)
+                && !Uri.CheckHostName(host).Equals(UriHostNameType.Dns)))
+        {
+            ShowRadioValidation("Enter a valid radio IP address or hostname.", RadioHostTextBox);
             return;
         }
 
         _settings.RadioHost = host;
+        _settings.RadioConnectionMode = DiscoveryModeButton.IsChecked == true
+            ? RadioConnectionMode.Discovery
+            : RadioConnectionMode.Direct;
+        _settings.RadioSerial = serial;
+        _settings.RadioDiscoveryIp = discoveryIp;
         _settings.ProtectionEnabled = ProtectionCheckBox.IsChecked == true;
         _settings.AlwaysOnTop = AlwaysOnTopCheckBox.IsChecked == true;
         _settings.ClickThrough = ClickThroughCheckBox.IsChecked == true;
@@ -107,6 +137,32 @@ public partial class SettingsWindow : Window
         };
         Result = _settings;
         DialogResult = true;
+    }
+
+    private void DiscoveryModeButton_Checked(object sender, RoutedEventArgs e) =>
+        ApplyRadioMode(RadioConnectionMode.Discovery);
+
+    private void DirectModeButton_Checked(object sender, RoutedEventArgs e) =>
+        ApplyRadioMode(RadioConnectionMode.Direct);
+
+    private void ApplyRadioMode(RadioConnectionMode mode)
+    {
+        var discovery = mode == RadioConnectionMode.Discovery;
+        DiscoveryModeButton.IsChecked = discovery;
+        DirectModeButton.IsChecked = !discovery;
+        DiscoveryFields.Visibility = discovery ? Visibility.Visible : Visibility.Collapsed;
+        DirectFields.Visibility = discovery ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ShowRadioValidation(string message, System.Windows.Controls.Control control)
+    {
+        System.Windows.MessageBox.Show(
+            this,
+            message,
+            "AntennaGuardian",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+        control.Focus();
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -145,7 +201,8 @@ public partial class SettingsWindow : Window
         UpdateProgress.Visibility = state.Phase == AppUpdatePhase.Downloading
             ? Visibility.Visible
             : Visibility.Collapsed;
-        AutomaticUpdatesCheckBox.Visibility = state.Phase == AppUpdatePhase.Portable
+        var externallyManaged = state.Phase is AppUpdatePhase.Portable or AppUpdatePhase.Store;
+        AutomaticUpdatesCheckBox.Visibility = externallyManaged
             ? Visibility.Collapsed
             : Visibility.Visible;
         CheckUpdateButton.IsEnabled = state.CanCheck;

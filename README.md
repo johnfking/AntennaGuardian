@@ -36,8 +36,8 @@ software, and uses color only where it carries operational meaning:
 - **Red:** transmit is blocked or a fault requires attention.
 - **Amber:** connection or registration is in progress.
 
-Each state includes the radio nickname reported by SmartSDR API and the
-configured IP address or hostname, making the protected radio unambiguous.
+Each state includes the radio nickname and current IP address reported through
+Flex discovery and the SmartSDR API, making the protected radio unambiguous.
 
 ## Policy control
 
@@ -77,7 +77,8 @@ protection, a correct station configuration, or responsible RF operation.
 1. Open the [latest GitHub Release](https://github.com/johnfking/AntennaGuardian/releases/latest).
 2. Download and run `AntennaGuardian-win-x64-Setup.exe`.
 3. Open **Settings** from the overlay or tray icon.
-4. Enter the Flex radio address and configure the antenna/band matrix.
+4. Select the Flex radio by serial number, IP pin, or direct address and
+   configure the antenna/band matrix.
 5. Use **ENABLE PROTECTION** when the policy is ready.
 
 The per-user installer does not require administrator access and installs a
@@ -94,6 +95,21 @@ Releases are not currently code-signed, so Windows may display a SmartScreen
 warning. SignPath Foundation enrollment is in progress; release notes will
 identify signed builds once the integration is active.
 
+## Radio discovery
+
+UDP discovery is the recommended connection mode. AntennaGuardian listens for
+Flex VITA-49 discovery broadcasts on UDP port 4992 and connects only when a
+broadcast matches the configured selector:
+
+- **Serial:** follows the same physical radio if DHCP changes its address.
+- **IP pin:** follows the radio at one specific IPv4 address.
+- **Serial + IP pin:** requires both values to match.
+- **Direct address:** retains the original fixed IP or hostname behavior.
+
+After a discovered radio disconnects, AntennaGuardian returns to listening for
+the next matching broadcast. It does not poll the old address. Existing
+settings remain in direct-address mode until discovery is selected explicitly.
+
 ## Updates
 
 Installed editions check GitHub Releases shortly after startup when automatic
@@ -105,6 +121,9 @@ begin installation while a transmit request is allowing, blocked, transmitting,
 or faulted. It saves settings, stops protection cleanly, removes its dynamic
 interlock when the connection is available, applies the downloaded package,
 and restarts. A failed check or download does not alter protection.
+
+Microsoft Store editions use Store-managed updates instead. They do not query
+or apply the GitHub update feed.
 
 ## How it works
 
@@ -145,7 +164,7 @@ dotnet publish .\src\AntennaGuardian.App\AntennaGuardian.App.csproj `
   -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -o .\dist
 dotnet tool install --tool-path .\.tools vpk --version 1.2.0
-.\.tools\vpk pack --packId AntennaGuardian --packVersion 0.2.0 `
+.\.tools\vpk pack --packId AntennaGuardian --packVersion 0.3.0 `
   --packDir .\dist --mainExe AntennaGuardian.exe `
   --channel win-x64 --runtime win-x64 --outputDir .\releases
 ```
@@ -157,9 +176,17 @@ publishes the installer, full and delta update packages, update-feed metadata,
 portable executable, and SHA-256 checksums.
 
 ```powershell
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
+
+## Microsoft Store
+
+The Store deployment will use MSIX rather than the existing EXE installer.
+Microsoft signs approved MSIX packages and manages their updates, so Store
+users do not need a separate code-signing subscription. The packaging work
+requires the product identity assigned after reserving AntennaGuardian in
+Partner Center. See [Microsoft Store deployment](docs/MICROSOFT_STORE.md).
 
 ## Code signing policy
 

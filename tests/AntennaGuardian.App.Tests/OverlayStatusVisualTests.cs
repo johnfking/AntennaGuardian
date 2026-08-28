@@ -4,6 +4,19 @@ namespace AntennaGuardian.App.Tests;
 
 public sealed class OverlayStatusVisualTests
 {
+    [Fact]
+    public void ConfiguredDiscoveryIdentityPrefersSerial()
+    {
+        var settings = new GuardianSettings
+        {
+            RadioConnectionMode = AntennaGuardian.Flex.RadioConnectionMode.Discovery,
+            RadioSerial = "1234-ABCD",
+            RadioDiscoveryIp = "192.0.2.20",
+        };
+
+        Assert.Equal("Serial 1234-ABCD", MainWindow.ConfiguredRadioIdentity(settings));
+    }
+
     [Theory]
     [InlineData(null, "10.0.0.107", "10.0.0.107")]
     [InlineData("Shack FLEX-6600", "10.0.0.107", "Shack FLEX-6600 · 10.0.0.107")]

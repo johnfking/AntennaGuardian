@@ -2,12 +2,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.IO;
 using AntennaGuardian.Core;
+using AntennaGuardian.Flex;
 
 namespace AntennaGuardian.App;
 
 public sealed class GuardianSettings
 {
     public string RadioHost { get; set; } = "127.0.0.1";
+    public RadioConnectionMode RadioConnectionMode { get; set; } = RadioConnectionMode.Direct;
+    public string RadioSerial { get; set; } = string.Empty;
+    public string RadioDiscoveryIp { get; set; } = string.Empty;
     public bool ProtectionEnabled { get; set; }
     public bool AlwaysOnTop { get; set; } = true;
     public bool ClickThrough { get; set; }
@@ -40,6 +44,11 @@ public sealed class GuardianSettings
         return AntennaPolicy.FromAllowed(cells.ToArray());
     }
 
+    public RadioConnectionOptions BuildRadioConnectionOptions() =>
+        RadioConnectionMode == RadioConnectionMode.Discovery
+            ? RadioConnectionOptions.Discover(RadioSerial.Trim(), RadioDiscoveryIp.Trim())
+            : RadioConnectionOptions.Direct(RadioHost.Trim());
+
     public string GetAntennaDisplayName(string antenna)
     {
         if (AntennaNames.TryGetValue(antenna, out var name)
@@ -54,6 +63,9 @@ public sealed class GuardianSettings
     public GuardianSettings Clone() => new()
     {
         RadioHost = RadioHost,
+        RadioConnectionMode = RadioConnectionMode,
+        RadioSerial = RadioSerial,
+        RadioDiscoveryIp = RadioDiscoveryIp,
         ProtectionEnabled = ProtectionEnabled,
         AlwaysOnTop = AlwaysOnTop,
         ClickThrough = ClickThrough,

@@ -4,7 +4,8 @@ namespace AntennaGuardian.Flex;
 
 public sealed class GuardianRuntime : IAsyncDisposable
 {
-    private readonly string _radioHost;
+    private readonly RadioConnectionOptions _connectionOptions;
+    private readonly IFlexRadioDiscovery _discovery;
     private readonly GuardianController _controller;
     private readonly SemaphoreSlim _eventGate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
@@ -12,17 +13,28 @@ public sealed class GuardianRuntime : IAsyncDisposable
     private Task? _runTask;
 
     public GuardianRuntime(
-        string radioHost,
+        RadioConnectionOptions connectionOptions,
         AntennaPolicy policy,
         IReadOnlyList<string> interlockAntennas)
+        : this(connectionOptions, policy, interlockAntennas, new FlexRadioDiscovery())
     {
-        _radioHost = radioHost;
+    }
+
+    internal GuardianRuntime(
+        RadioConnectionOptions connectionOptions,
+        AntennaPolicy policy,
+        IReadOnlyList<string> interlockAntennas,
+        IFlexRadioDiscovery discovery)
+    {
+        _connectionOptions = connectionOptions;
+        _discovery = discovery;
         _controller = new GuardianController(new PolicyEngine(), policy, interlockAntennas);
     }
 
     public event Action<GuardianStatus>? StatusChanged;
     public event Action<string>? Activity;
     public event Action<string>? RadioIdentityChanged;
+    public event Action<DiscoveredRadio>? RadioEndpointChanged;
 
     public void Start()
     {
@@ -38,14 +50,35 @@ public sealed class GuardianRuntime : IAsyncDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            await using var client = new FlexRadioClient();
+            DiscoveredRadio endpoint;
+            try
+            {
+                endpoint = await ResolveEndpointAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception error)
+            {
+                await ReportDisconnectAsync(error.Message);
+                await DelayAfterFailureAsync(cancellationToken);
+                continue;
+            }
+
+            await using var client = new FlexRadioClient(endpoint.Port);
             _client = client;
             client.Activity += OnActivity;
             client.RadioEventReceived += OnRadioEvent;
             try
             {
-                Activity?.Invoke($"Connecting to radio at {_radioHost}...");
-                await client.ConnectAsync(_radioHost, cancellationToken);
+                RadioEndpointChanged?.Invoke(endpoint);
+                if (!string.IsNullOrWhiteSpace(endpoint.Nickname))
+                {
+                    RadioIdentityChanged?.Invoke(endpoint.Nickname);
+                }
+                Activity?.Invoke($"Connecting to radio at {endpoint.Host}:{endpoint.Port}...");
+                await client.ConnectAsync(endpoint.Host, cancellationToken);
                 await client.Completion.WaitAsync(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -54,10 +87,7 @@ public sealed class GuardianRuntime : IAsyncDisposable
             }
             catch (Exception error)
             {
-                await HandleEventAsync(
-                    new RadioDisconnected(error.Message),
-                    CancellationToken.None);
-                Activity?.Invoke(error.Message);
+                await ReportDisconnectAsync(error.Message);
             }
             finally
             {
@@ -66,14 +96,58 @@ public sealed class GuardianRuntime : IAsyncDisposable
                 _client = null;
             }
 
-            try
+            if (_connectionOptions.Mode == RadioConnectionMode.Direct)
             {
-                await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+                await DelayAfterFailureAsync(cancellationToken);
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+        }
+    }
+
+    private async Task<DiscoveredRadio> ResolveEndpointAsync(CancellationToken cancellationToken)
+    {
+        if (_connectionOptions.Mode == RadioConnectionMode.Direct)
+        {
+            return new DiscoveredRadio(
+                _connectionOptions.DirectHost,
+                4992,
+                string.Empty,
+                string.Empty,
+                string.Empty);
+        }
+
+        var selector = FormatSelector(_connectionOptions);
+        Activity?.Invoke($"Waiting for Flex discovery broadcast matching {selector}...");
+        return await _discovery.WaitForMatchAsync(_connectionOptions, cancellationToken);
+    }
+
+    private async Task ReportDisconnectAsync(string message)
+    {
+        await HandleEventAsync(new RadioDisconnected(message), CancellationToken.None);
+        Activity?.Invoke(message);
+    }
+
+    private static string FormatSelector(RadioConnectionOptions options)
+    {
+        var selectors = new List<string>();
+        if (!string.IsNullOrWhiteSpace(options.Serial))
+        {
+            selectors.Add($"serial {options.Serial.Trim()}");
+        }
+        if (!string.IsNullOrWhiteSpace(options.DiscoveryIp))
+        {
+            selectors.Add($"IP {options.DiscoveryIp.Trim()}");
+        }
+        return string.Join(" and ", selectors);
+    }
+
+    private static async Task DelayAfterFailureAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 

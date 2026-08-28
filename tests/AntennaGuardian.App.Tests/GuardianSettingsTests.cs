@@ -1,5 +1,7 @@
 namespace AntennaGuardian.App.Tests;
 
+using AntennaGuardian.Flex;
+
 public sealed class GuardianSettingsTests
 {
     [Fact]
@@ -42,5 +44,78 @@ public sealed class GuardianSettingsTests
         var clone = settings.Clone();
 
         Assert.False(clone.AutomaticallyCheckForUpdates);
+    }
+
+    [Fact]
+    public void LegacySettingsDefaultToDirectConnection()
+    {
+        var settings = new GuardianSettings { RadioHost = "192.0.2.10" };
+
+        var options = settings.BuildRadioConnectionOptions();
+
+        Assert.Equal(RadioConnectionMode.Direct, options.Mode);
+        Assert.Equal("192.0.2.10", options.DirectHost);
+    }
+
+    [Fact]
+    public void DiscoverySettingsBuildSerialAndIpSelector()
+    {
+        var settings = new GuardianSettings
+        {
+            RadioConnectionMode = RadioConnectionMode.Discovery,
+            RadioSerial = " 1234-ABCD ",
+            RadioDiscoveryIp = " 192.0.2.20 ",
+        };
+
+        var options = settings.BuildRadioConnectionOptions();
+
+        Assert.Equal(RadioConnectionMode.Discovery, options.Mode);
+        Assert.Equal("1234-ABCD", options.Serial);
+        Assert.Equal("192.0.2.20", options.DiscoveryIp);
+    }
+
+    [Fact]
+    public void CloneKeepsRadioDiscoverySettings()
+    {
+        var settings = new GuardianSettings
+        {
+            RadioConnectionMode = RadioConnectionMode.Discovery,
+            RadioSerial = "1234-ABCD",
+            RadioDiscoveryIp = "192.0.2.20",
+        };
+
+        var clone = settings.Clone();
+
+        Assert.Equal(RadioConnectionMode.Discovery, clone.RadioConnectionMode);
+        Assert.Equal("1234-ABCD", clone.RadioSerial);
+        Assert.Equal("192.0.2.20", clone.RadioDiscoveryIp);
+    }
+
+    [Fact]
+    public async Task SettingsStoreRoundTripsRadioDiscoverySelection()
+    {
+        var settingsPath = Path.Combine(
+            Path.GetTempPath(),
+            $"AntennaGuardianSettings-{Guid.NewGuid():N}.json");
+        try
+        {
+            var store = new SettingsStore(settingsPath);
+            await store.SaveAsync(new GuardianSettings
+            {
+                RadioConnectionMode = RadioConnectionMode.Discovery,
+                RadioSerial = "1234-ABCD",
+                RadioDiscoveryIp = "192.0.2.20",
+            });
+
+            var loaded = await store.LoadAsync();
+
+            Assert.Equal(RadioConnectionMode.Discovery, loaded.RadioConnectionMode);
+            Assert.Equal("1234-ABCD", loaded.RadioSerial);
+            Assert.Equal("192.0.2.20", loaded.RadioDiscoveryIp);
+        }
+        finally
+        {
+            File.Delete(settingsPath);
+        }
     }
 }
