@@ -21,4 +21,13 @@
     <ProjectReference Include="..\..\src\AntennaGuardian.App\AntennaGuardian.App.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\src\AntennaGuardian.App\App.xaml"
+          Link="Xaml\App.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\AntennaGuardian.App\MainWindow.xaml"
+          Link="Xaml\MainWindow.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
