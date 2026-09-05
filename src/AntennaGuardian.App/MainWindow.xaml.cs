@@ -344,7 +344,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static bool IsInsideButton(DependencyObject? source)
+    internal static bool IsInsideButton(DependencyObject? source)
     {
         while (source is not null)
         {
@@ -352,7 +352,16 @@ public partial class MainWindow : Window
             {
                 return true;
             }
-            source = VisualTreeHelper.GetParent(source);
+            // Mouse events over inline text can originate from a Run or Span,
+            // which belongs to the content tree rather than the visual tree.
+            source = source switch
+            {
+                FrameworkContentElement content => content.Parent,
+                ContentElement content => ContentOperations.GetParent(content),
+                Visual or System.Windows.Media.Media3D.Visual3D =>
+                    VisualTreeHelper.GetParent(source),
+                _ => LogicalTreeHelper.GetParent(source),
+            };
         }
         return false;
     }
